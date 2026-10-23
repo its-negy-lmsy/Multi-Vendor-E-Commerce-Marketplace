@@ -12,6 +12,7 @@
 - [x] MongoDB-persisted cart with Redis cache fallback and server-side multi-vendor checkout pricing, commission snapshots, idempotency key and atomic stock reservations.
 - [x] Development-only HMAC-signed mock payment webhook, customer order history, vendor item-scoped fulfillment and payable ledger.
 - [x] Elasticsearch product search/index mapping, MongoDB outbox retries, explicit MongoDB fallback and MongoDB visibility revalidation.
+- [x] Razorpay Route order adapter, checkout widget handoff, audited linked-account reference management and raw-body HMAC validation for captured INR payment webhooks.
 - [x] Admin aggregation summary and audit-log API; vendor balance is marked payable and not settled.
 - [x] Seeded fictional catalog/customer and setup, architecture, data model, OpenAPI, deployment, presentation and reflection documentation.
 
@@ -21,15 +22,16 @@
 - [ ] Protected account/dashboard routes and product detail UI; frontend refresh-on-401 is implemented.
 - [ ] Secure local/S3 uploads, product detail UI and vendor/admin dashboards.
 - [ ] Coupon application and reservation/checkout recovery worker; current stock compensation is best-effort and critical writes need replica-set transaction hardening.
-- [ ] Real Razorpay marketplace adapter, signed production webhook, refund reversals and provider settlement.
+- [ ] Razorpay Route account onboarding and provider-backed integration verification; transfer release, refund reversals and provider settlement/reconciliation.
 - [ ] Reviews, actual PDF invoice generation, commission/coupon configuration and analytics dashboard UI.
-- [ ] Meaningful automated tests, executed production build, browser verification/screenshots and security review.
+- [x] Unit tests, production build, and storefront browser inspection (database-backed checkout is not exercised).
+- [ ] Current checkout screenshot and comprehensive security review.
 - [ ] Independent deployments and live third-party integration credentials.
 
 ## Blockers / manual setup
 
 - MongoDB/Redis/Elasticsearch processes unavailable in this environment; Docker is not installed.
-- No AWS, Razorpay, deployment or email credentials/account configuration available.
+- No AWS, Razorpay, deployment or email credentials/account configuration available; provider path is implemented but not exercised against Razorpay.
 - MongoDB-backed route tests could not run because the local test binary download stalled; current tests do not assert persistence.
 
 This is an honest foundation milestone, not yet ready for capstone evaluation.

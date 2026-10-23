@@ -17,15 +17,17 @@ const schema = z.object({
   PLATFORM_COMMISSION_BPS: z.coerce.number().int().min(0).max(10000).default(1000),
   MOCK_PAYMENT_WEBHOOK_SECRET: z.string().min(32).default('local-mock-webhook-secret-replace-before-sharing'),
   COOKIE_SECURE: z.enum(['true', 'false']).default('false'),
-  PAYMENT_PROVIDER: z.enum(['mock']).default('mock'),
+  PAYMENT_PROVIDER: z.enum(['mock', 'razorpay']).default('mock'),
   RAZORPAY_KEY_ID: z.string().optional(), RAZORPAY_KEY_SECRET: z.string().optional(),
+  RAZORPAY_WEBHOOK_SECRET: z.string().optional(),
   DEMO_ADMIN_EMAIL: z.preprocess(value => value === '' ? undefined : value, z.email().optional()),
   DEMO_ADMIN_PASSWORD: z.preprocess(value => value === '' ? undefined : value, z.string().min(12).optional()),
 }).superRefine((value, context) => {
   if (Boolean(value.DEMO_ADMIN_EMAIL) !== Boolean(value.DEMO_ADMIN_PASSWORD)) context.addIssue({ code: 'custom', message: 'Set both demo admin email and password, or neither' });
   if (value.NODE_ENV === 'production' && (!process.env.JWT_ACCESS_SECRET || /replace|change|example|local-development/i.test(value.JWT_ACCESS_SECRET))) context.addIssue({ code: 'custom', message: 'Production requires a private JWT_ACCESS_SECRET' });
   if (value.NODE_ENV === 'production' && !process.env.MONGODB_URI) context.addIssue({ code: 'custom', message: 'Production requires MONGODB_URI' });
-  if (value.NODE_ENV === 'production' && value.PAYMENT_PROVIDER === 'mock') context.addIssue({ code: 'custom', message: 'The mock payment provider is development-only' });
+  if (value.PAYMENT_PROVIDER === 'razorpay' && (!value.RAZORPAY_KEY_ID || !value.RAZORPAY_KEY_SECRET || !value.RAZORPAY_WEBHOOK_SECRET)) context.addIssue({ code: 'custom', message: 'Razorpay requires API key ID, API key secret and webhook secret' });
+  if (value.NODE_ENV === 'production' && value.PAYMENT_PROVIDER !== 'razorpay') context.addIssue({ code: 'custom', message: 'Production requires a configured Razorpay Route provider' });
 });
 
 export const config = schema.parse(process.env);

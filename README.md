@@ -1,10 +1,10 @@
 # Common Goods — FS-01 Marketplace
 
-A multi-vendor marketplace capstone built around a considered, maker-first shopping experience. The working foundation includes a React storefront, modular Express API, MongoDB product and identity models, vendor approval/product moderation APIs, Redis cart caching, Elasticsearch product search/outbox sync, idempotent multi-vendor checkout, a local signed mock payment event, and role-aware APIs.
+A multi-vendor marketplace capstone built around a considered, maker-first shopping experience. The working foundation includes a React storefront, modular Express API, MongoDB product and identity models, vendor approval/product moderation APIs, Redis cart caching, Elasticsearch product search/outbox sync, idempotent multi-vendor checkout, signed mock payments, and an unverified Razorpay Route checkout adapter.
 
 ## Current status
 
-This is not yet the completed capstone. Core APIs exist but live services could not be exercised here. Customer product-detail/cart/checkout flows, vendor/admin dashboards, secure uploads, account recovery, coupons, reviews, PDF invoices, refunds, analytics UI, and the approved payment-provider integration remain incomplete. Checkout uses best-effort stock compensation until replica-set transaction/recovery hardening is added. Read [the acceptance checklist](docs/ACCEPTANCE_CHECKLIST.md) and [test report](docs/TEST_REPORT.md) for the verified scope.
+This is not yet the completed capstone. Core APIs exist but live services could not be exercised here. Vendor/admin dashboards, secure uploads, account recovery, coupons, reviews, PDF invoices, refunds, analytics UI, and payment settlement/reconciliation remain incomplete. The Razorpay adapter requires an enabled Route account and has not been tested with provider credentials. Checkout uses best-effort stock compensation until replica-set transaction/recovery hardening is added. Read [the acceptance checklist](docs/ACCEPTANCE_CHECKLIST.md) and [test report](docs/TEST_REPORT.md) for the verified scope.
 
 ## Architecture and docs
 
@@ -62,4 +62,4 @@ After `npm run seed:dev`, sign in as `maker@fs01.local` / `MakerDemo!2026` to us
 
 ## Limitations
 
-Identity currently covers customer register/login/refresh/logout and sample administrator authorization. Product routes are read-only. Access-token refresh is exposed but the browser currently requires sign-in again after access-token expiry; automatic RTK Query reauthentication is a follow-up. Service adapters for Redis, Elasticsearch, S3 and Razorpay are not yet connected to workflows. See the deployment guide for external service setup and current blockers.
+Identity currently covers customer register/login/refresh/logout and sample administrator authorization. Product routes support vendor-managed edits with moderation. The browser refreshes expired access tokens. Redis and Elasticsearch adapters are connected with MongoDB fallbacks; S3 uploads are not integrated. Razorpay Route can create orders with held vendor transfers and confirm captured payments via its signed webhook, but account onboarding, transfers, refunds and settlement are not verified or complete. See the deployment guide for external service setup and current blockers.

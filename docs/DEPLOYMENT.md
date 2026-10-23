@@ -17,13 +17,15 @@ This workspace machine has no Docker executable or configured database. The Comp
 
 For a local test checkout, use the API to save an address and update the cart, then POST `/api/v1/checkout` with a unique `Idempotency-Key`. The response contains a mock payment reference. Run `npm --workspace @fs01/api run payment:mock-event -- <orderId> <reference> paid`, then use the printed JSON body and `X-Mock-Signature` header at `/api/v1/payments/mock/webhook`. This signed event only simulates a local test; it is not a Razorpay transaction.
 
+To exercise the provider path, configure `PAYMENT_PROVIDER=razorpay`, the three Razorpay secrets, and Route linked-account IDs for every approved seller via `PATCH /api/v1/admin/vendors/{id}/razorpay-linked-account`. Configure the Razorpay webhook to call `/api/v1/payments/razorpay/webhook` with `payment.captured` enabled. The server verifies the raw-body HMAC signature and captured INR amount before placing the order; the browser callback only reports that confirmation is pending. Seller transfers are requested on hold and this project does not yet release, reconcile, refund, or settle them. No provider credentials or enabled Route account were available for a live test.
+
 ## Managed deployment outline
 
 - Deploy `apps/api` to a Node 20+ service with health check `/api/v1/health/ready`; deploy `apps/web` as static Vite output. Set `VITE_API_URL` at web build time and `WEB_ORIGIN` / CORS at API runtime.
 - Use managed MongoDB replica set with backups and TLS. Use private Redis and Elasticsearch endpoints and separate least-privilege credentials. Do not expose service ports publicly.
 - Configure HTTPS-only secure cookies, strong JWT key rotation, secrets manager, bounded service timeouts, log redaction, monitoring, and alerting.
 - S3: create a private bucket, block public access, issue narrowly scoped presigned upload credentials, enforce MIME/size policy in API and verify uploaded bytes, configure lifecycle cleanup for abandoned temporary keys. The production upload adapter is not implemented yet.
-- Razorpay: use test credentials and confirm account eligibility for Route/marketplace transfers before enabling payouts. Ordinary checkout does not provide vendor split settlement. No Razorpay credentials or account capability were present, so live provider setup is unverified and adapter remains pending.
+- Razorpay: configure test credentials and confirm account eligibility for Route/marketplace transfers before enabling payouts. The adapter creates INR orders with held transfers to configured linked accounts. Account eligibility, provider testing, transfer release, settlement reconciliation and refunds remain unverified or incomplete here.
 - Configure provider-signed webhooks to a dedicated endpoint before enabling payments. A browser redirect is never payment proof.
 - Backup/restore: enable managed point-in-time recovery, export sanitized seed fixtures separately, and rehearse restore to a staging database.
 

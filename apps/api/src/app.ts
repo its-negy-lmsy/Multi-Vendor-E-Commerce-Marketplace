@@ -17,13 +17,15 @@ import { hashToken, makeRefreshToken, refreshCookieOptions, requireAuth, require
 import { calculateTotals } from './commerce.js';
 import { clearCartCache, readCartCache, writeCartCache } from './cache.js';
 import { processOutboxBatch, queueProductIndex, searchElasticProducts } from './search.js';
-import { verifyMockPaymentEvent } from './payments.js';
+import { createPaymentAttempt, verifyMockPaymentEvent, verifyRazorpayWebhook } from './payments.js';
+
+declare global { namespace Express { interface Request { rawBody?: Buffer } } }
 
 export const app = express();
 app.disable('x-powered-by');
 app.use(helmet());
 app.use(cors({ origin: config.WEB_ORIGIN, credentials: true }));
-app.use(express.json({ limit: '128kb' }));
+app.use(express.json({ limit: '128kb', verify: (req, _res, buffer) => { (req as express.Request).rawBody = Buffer.from(buffer); } }));
 app.use(cookieParser());
 app.use((req, res, next) => { res.setHeader('x-request-id', req.headers['x-request-id']?.toString().slice(0, 100) || crypto.randomUUID()); next(); });
 
@@ -158,7 +160,7 @@ app.post('/api/v1/vendors/application', requireAuth, requireRoles('CUSTOMER'), a
   } catch (error) { next(error); }
 });
 app.get('/api/v1/vendors/me', requireAuth, requireRoles('VENDOR'), async (req, res, next) => {
-  try { res.json({ profile: await VendorProfile.findOne({ userId: req.identity!.id }) }); } catch (error) { next(error); }
+  try { res.json({ profile: await VendorProfile.findOne({ userId: req.identity!.id }).select('-razorpayLinkedAccountId') }); } catch (error) { next(error); }
 });
 app.get('/api/v1/admin/vendors', requireAuth, requireRoles('ADMIN'), async (req, res, next) => {
   try {
@@ -176,6 +178,16 @@ app.patch('/api/v1/admin/vendors/:id/status', requireAuth, requireRoles('ADMIN')
     await User.updateOne({ _id: profile.userId }, { $set: { role: input.status === 'APPROVED' ? 'VENDOR' : 'CUSTOMER', status: input.status === 'SUSPENDED' ? 'SUSPENDED' : 'ACTIVE' } });
     await AuditLog.create({ actorId: req.identity!.id, action: `vendor.${input.status.toLowerCase()}`, resourceType: 'VendorProfile', resourceId: String(profile._id), summary: input.reason || `Vendor application status set to ${input.status}`, requestId: String(res.getHeader('x-request-id')) });
     res.json({ application: profile });
+  } catch (error) { next(error); }
+});
+app.patch('/api/v1/admin/vendors/:id/razorpay-linked-account', requireAuth, requireRoles('ADMIN'), async (req, res, next) => {
+  try {
+    if (!mongoose.isValidObjectId(req.params.id)) { res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Vendor profile not found' } }); return; }
+    const input = z.object({ linkedAccountId: z.string().regex(/^acc_[A-Za-z0-9]+$/).max(80) }).strict().parse(req.body);
+    const profile = await VendorProfile.findOneAndUpdate({ _id: req.params.id, status: 'APPROVED' }, { $set: { razorpayLinkedAccountId: input.linkedAccountId } }, { new: true });
+    if (!profile) { res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Approved vendor profile not found' } }); return; }
+    await AuditLog.create({ actorId: req.identity!.id, action: 'vendor.razorpay_linked_account.updated', resourceType: 'VendorProfile', resourceId: String(profile._id), summary: 'Razorpay Route linked account reference updated', requestId: String(res.getHeader('x-request-id')) });
+    res.json({ profile: { id: String(profile._id), status: profile.status, linked: true } });
   } catch (error) { next(error); }
 });
 
@@ -277,15 +289,20 @@ app.post('/api/v1/checkout', requireAuth, requireRoles('CUSTOMER'), async (req, 
     const key = String(req.get('idempotency-key') ?? '');
     if (!/^[A-Za-z0-9._:-]{8,128}$/.test(key)) { res.status(400).json({ error: { code: 'IDEMPOTENCY_KEY_REQUIRED', message: 'Supply an Idempotency-Key between 8 and 128 safe characters' } }); return; }
     const previous = await Order.findOne({ customerId: req.identity!.id, idempotencyKey: key });
-    if (previous) { res.json({ order: previous, replayed: true }); return; }
+    if (previous) {
+      const priorPayment = await Payment.findOne({ orderId: previous._id }).lean();
+      res.json({ order: previous, replayed: true, payment: priorPayment ? { provider: priorPayment.provider, reference: priorPayment.providerReference, ...(priorPayment.provider === 'razorpay' ? { keyId: config.RAZORPAY_KEY_ID } : {}), status: priorPayment.status, amountPaise: priorPayment.amountPaise, currency: 'INR' } : undefined }); return;
+    }
     const input = checkoutSchema.parse(req.body);
     const address = await Address.findOne({ _id: input.addressId, userId: req.identity!.id }).lean();
     if (!address) { res.status(400).json({ error: { code: 'INVALID_ADDRESS', message: 'Choose one of your saved shipping addresses' } }); return; }
     const products = await Product.find({ _id: { $in: input.items.map(item => item.productId) }, status: 'PUBLISHED' }).lean();
     if (products.length !== input.items.length) { res.status(409).json({ error: { code: 'PRODUCT_UNAVAILABLE', message: 'One or more products are no longer available' } }); return; }
-    const vendors = await VendorProfile.find({ userId: { $in: products.map(product => product.vendorId) }, status: 'APPROVED' }).select('userId').lean();
+    const vendors = await VendorProfile.find({ userId: { $in: products.map(product => product.vendorId) }, status: 'APPROVED' }).select('userId razorpayLinkedAccountId').lean();
     const approvedVendorIds = new Set(vendors.map(profile => String(profile.userId)));
     if (products.some(product => !approvedVendorIds.has(String(product.vendorId)))) { res.status(409).json({ error: { code: 'VENDOR_UNAVAILABLE', message: 'A seller is not currently approved to sell' } }); return; }
+    const profileByVendor = new Map(vendors.map(profile => [String(profile.userId), profile]));
+    if (config.PAYMENT_PROVIDER === 'razorpay' && products.some(product => !profileByVendor.get(String(product.vendorId))?.razorpayLinkedAccountId)) { res.status(409).json({ error: { code: 'VENDOR_PAYMENT_NOT_READY', message: 'A seller is missing its approved Razorpay Route linked account' } }); return; }
     const productById = new Map(products.map(product => [String(product._id), product]));
     const lines = input.items.map(item => ({ requested: item, product: productById.get(item.productId)! }));
     const totals = calculateTotals(lines.map(line => ({ unitPricePaise: line.product.pricePaise, quantity: line.requested.quantity })), config.PLATFORM_COMMISSION_BPS);
@@ -305,18 +322,29 @@ app.post('/api/v1/checkout', requireAuth, requireRoles('CUSTOMER'), async (req, 
     }
     const orderId = new mongoose.Types.ObjectId();
     createdOrderId = orderId;
-    const paymentReference = `mock_${randomUUID()}`;
-    const order = new Order({ _id: orderId, customerId: req.identity!.id, idempotencyKey: key, items: orderItems, addressSnapshot: { label: address.label, recipient: address.recipient, phone: address.phone, line1: address.line1, line2: address.line2, city: address.city, state: address.state, postalCode: address.postalCode, country: address.country }, subtotalPaise: totals.subtotalPaise, discountPaise: 0, totalPaise: totals.subtotalPaise, commissionPaise: totals.commissionPaise, status: 'PAYMENT_PENDING', paymentStatus: 'PENDING', paymentReference });
+    const pendingReference = `pending_${randomUUID()}`;
+    const order = new Order({ _id: orderId, customerId: req.identity!.id, idempotencyKey: key, items: orderItems, addressSnapshot: { label: address.label, recipient: address.recipient, phone: address.phone, line1: address.line1, line2: address.line2, city: address.city, state: address.state, postalCode: address.postalCode, country: address.country }, subtotalPaise: totals.subtotalPaise, discountPaise: 0, totalPaise: totals.subtotalPaise, commissionPaise: totals.commissionPaise, status: 'PAYMENT_PENDING', paymentStatus: 'PENDING', paymentReference: pendingReference });
     await order.save();
-    await Payment.create({ orderId, provider: 'mock', providerReference: paymentReference, eventId: `attempt:${paymentReference}`, status: 'PENDING', amountPaise: totals.subtotalPaise });
-    res.status(201).json({ order, payment: { provider: 'mock', reference: paymentReference, status: 'PENDING' } });
+    const transfersByVendor = new Map<string, { amountPaise: number; accountId: string }>();
+    for (const item of orderItems) {
+      const vendorKey = String(item.vendorId), profile = profileByVendor.get(vendorKey);
+      const transfer = transfersByVendor.get(vendorKey) ?? { amountPaise: 0, accountId: profile?.razorpayLinkedAccountId ?? '' };
+      transfer.amountPaise += item.vendorPayablePaise; transfersByVendor.set(vendorKey, transfer);
+    }
+    const paymentAttempt = await createPaymentAttempt({ amountPaise: totals.subtotalPaise, receipt: String(orderId), transfers: [...transfersByVendor].filter(([, value]) => value.amountPaise > 0).map(([vendorId, value]) => ({ vendorId, accountId: value.accountId, amountPaise: value.amountPaise })) });
+    order.paymentReference = paymentAttempt.reference; await order.save();
+    await Payment.create({ orderId, provider: paymentAttempt.provider, providerReference: paymentAttempt.reference, eventId: `attempt:${paymentAttempt.reference}`, status: 'PENDING', amountPaise: totals.subtotalPaise });
+    res.status(201).json({ order, payment: { ...paymentAttempt, status: 'PENDING', amountPaise: totals.subtotalPaise, currency: 'INR' } });
   } catch (error) {
     if (createdOrderId) { await Promise.all([Order.deleteOne({ _id: createdOrderId }), Payment.deleteMany({ orderId: createdOrderId })]); }
     if (reserved.length) await Promise.all(reserved.map(item => Product.updateOne({ _id: item.id }, { $inc: { stock: item.quantity } })));
     if (error instanceof mongoose.mongo.MongoServerError && error.code === 11000) {
       const key = String(req.get('idempotency-key') ?? '');
       const previous = await Order.findOne({ customerId: req.identity!.id, idempotencyKey: key });
-      if (previous) { res.json({ order: previous, replayed: true }); return; }
+      if (previous) {
+        const priorPayment = await Payment.findOne({ orderId: previous._id }).lean();
+        res.json({ order: previous, replayed: true, payment: priorPayment ? { provider: priorPayment.provider, reference: priorPayment.providerReference, ...(priorPayment.provider === 'razorpay' ? { keyId: config.RAZORPAY_KEY_ID } : {}), status: priorPayment.status, amountPaise: priorPayment.amountPaise, currency: 'INR' } : undefined }); return;
+      }
     }
     next(error);
   }
@@ -353,6 +381,47 @@ app.post('/api/v1/payments/mock/webhook', async (req, res, next) => {
     } else {
       await Promise.all(order.items.map(item => Product.updateOne({ _id: item.productId }, { $inc: { stock: item.quantity } })));
     }
+    res.json({ received: true, orderId: String(claimedOrder._id), status: claimedOrder.status });
+  } catch (error) { next(error); }
+});
+
+app.post('/api/v1/payments/razorpay/webhook', async (req, res, next) => {
+  try {
+    if (config.PAYMENT_PROVIDER !== 'razorpay') { res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Not found' } }); return; }
+    const rawBody = req.rawBody;
+    const signature = req.get('x-razorpay-signature') ?? '';
+    if (!rawBody || !config.RAZORPAY_WEBHOOK_SECRET || !verifyRazorpayWebhook(rawBody, signature, config.RAZORPAY_WEBHOOK_SECRET)) { res.status(401).json({ error: { code: 'INVALID_SIGNATURE', message: 'Webhook signature is invalid' } }); return; }
+    const event = req.body as { event?: string; payload?: { payment?: { entity?: { id?: string; order_id?: string; amount?: number; currency?: string } } } };
+    if (event.event !== 'payment.captured') { res.json({ received: true, ignored: true }); return; }
+    const payment = event.payload?.payment?.entity;
+    if (!payment?.id || !payment.order_id || !Number.isInteger(payment.amount) || payment.currency !== 'INR') { res.status(400).json({ error: { code: 'INVALID_EVENT', message: 'Captured payment payload is incomplete' } }); return; }
+    const attempt = await Payment.findOne({ provider: 'razorpay', providerReference: payment.order_id });
+    if (!attempt) {
+      const duplicate = await Payment.findOne({ provider: 'razorpay', eventId: req.get('x-razorpay-event-id') ?? `${event.event}:${payment.id}` });
+      if (duplicate) { res.json({ received: true, duplicate: true }); return; }
+      res.status(404).json({ error: { code: 'PAYMENT_NOT_FOUND', message: 'Payment order was not found' } }); return;
+    }
+    const order = await Order.findOne({ _id: attempt.orderId, paymentReference: payment.order_id });
+    if (!order) { res.status(404).json({ error: { code: 'ORDER_NOT_FOUND', message: 'Payment order was not found' } }); return; }
+    if (payment.amount !== order.totalPaise) { res.status(400).json({ error: { code: 'PAYMENT_AMOUNT_MISMATCH', message: 'Captured amount does not match the order' } }); return; }
+    const eventId = (req.get('x-razorpay-event-id') ?? `${event.event}:${payment.id}`).slice(0, 120);
+    const addLedgerCredits = async () => Promise.all(order.items.map(item => VendorLedgerEntry.updateOne({ eventKey: `${eventId}:${item._id}` }, { $setOnInsert: { vendorId: item.vendorId, orderId: order._id, orderItemId: item._id, eventKey: `${eventId}:${item._id}`, amountPaise: item.vendorPayablePaise, type: 'SALE_CREDIT', status: 'PAYABLE' } }, { upsert: true })));
+    const claimedOrder = await Order.findOneAndUpdate({ _id: order._id, status: 'PAYMENT_PENDING', paymentStatus: 'PENDING', paymentEventId: null }, { $set: { status: 'PLACED', paymentStatus: 'PAID', paymentEventId: eventId } }, { new: true });
+    if (!claimedOrder) {
+      const current = await Order.findById(order._id);
+      if (current?.paymentEventId === eventId) {
+        await Payment.updateOne({ _id: attempt._id }, { $set: { eventId, status: 'PAID', signatureVerifiedAt: new Date() } });
+        await addLedgerCredits();
+        await Cart.updateOne({ userId: order.customerId }, { $set: { items: [] } });
+        await clearCartCache(String(order.customerId));
+        res.json({ received: true, duplicate: true }); return;
+      }
+      res.json({ received: true, ignored: true }); return;
+    }
+    await Payment.updateOne({ _id: attempt._id }, { $set: { eventId, status: 'PAID', signatureVerifiedAt: new Date() } });
+    await addLedgerCredits();
+    await Cart.updateOne({ userId: order.customerId }, { $set: { items: [] } });
+    await clearCartCache(String(order.customerId));
     res.json({ received: true, orderId: String(claimedOrder._id), status: claimedOrder.status });
   } catch (error) { next(error); }
 });

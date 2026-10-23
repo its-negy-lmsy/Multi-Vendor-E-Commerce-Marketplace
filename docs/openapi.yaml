@@ -5,8 +5,8 @@ info:
   description: >-
     Versioned REST API. MongoDB is authoritative. Responses use {error:{code,message,details?}}
     for failures. Authentication endpoints are rate limited to 20 requests per 15 minutes per IP.
-    `POST /checkout` requires an Idempotency-Key. The mock payment webhook is development-only
-    and confirms payment only with a valid HMAC signature.
+    `POST /checkout` requires an Idempotency-Key. Payments can use the development mock or
+    Razorpay Route. The provider webhook validates the raw-body HMAC and captured amount.
 servers:
   - url: http://localhost:4000/api/v1
 paths:
@@ -132,7 +132,7 @@ paths:
   /checkout:
     post:
       security: [{ bearerAuth: [] }]
-      summary: Create an idempotent multi-vendor order and mock payment attempt
+      summary: Create an idempotent multi-vendor order and payment attempt
       parameters:
         - { in: header, name: Idempotency-Key, required: true, schema: { type: string, minLength: 8, maxLength: 128 } }
       responses:
@@ -148,6 +148,17 @@ paths:
         '200': { description: Event processed idempotently }
         '401': { description: Invalid signature }
         '404': { description: Disabled outside the local mock provider }
+  /payments/razorpay/webhook:
+    post:
+      summary: Verify a Razorpay Route captured payment event
+      parameters:
+        - { in: header, name: X-Razorpay-Signature, required: true, schema: { type: string } }
+        - { in: header, name: X-Razorpay-Event-Id, required: false, schema: { type: string } }
+      responses:
+        '200': { description: Captured payment processed idempotently; other signed event types acknowledged and ignored }
+        '400': { description: Invalid event payload or captured amount mismatch }
+        '401': { description: Invalid signature }
+        '404': { description: Payment attempt not found or provider disabled }
   /orders:
     get:
       security: [{ bearerAuth: [] }]
@@ -169,6 +180,24 @@ paths:
       responses:
         '201': { description: Application awaits admin review }
         '409': { description: Application already exists }
+  /admin/vendors/{id}/razorpay-linked-account:
+    patch:
+      security: [{ bearerAuth: [] }]
+      summary: Set an approved vendor's Route linked-account reference (admin only)
+      parameters: [{ in: path, name: id, required: true, schema: { type: string } }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [linkedAccountId]
+              properties:
+                linkedAccountId: { type: string, pattern: '^acc_[A-Za-z0-9]+$' }
+      responses:
+        '200': { description: Updated reference; the provider account ID is not returned }
+        '403': { description: Admin role required }
+        '404': { description: Approved vendor profile not found }
   /vendors/me:
     get:
       security: [{ bearerAuth: [] }]

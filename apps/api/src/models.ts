@@ -39,6 +39,7 @@ const vendorProfileSchema = new Schema({
   reviewedBy: { type: Schema.Types.ObjectId, ref: 'User', default: null },
   reviewedAt: { type: Date, default: null },
   rejectionReason: { type: String, maxlength: 500, default: '' },
+  razorpayLinkedAccountId: { type: String, maxlength: 80, default: '' },
 }, { timestamps: true, strict: 'throw' });
 
 const auditLogSchema = new Schema({

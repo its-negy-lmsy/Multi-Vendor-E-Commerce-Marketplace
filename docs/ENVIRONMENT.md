@@ -15,11 +15,11 @@ Copy `.env.example` to `.env`. Empty optional values are accepted. Never commit 
 | `REFRESH_TOKEN_DAYS` | `30` | Hashed database refresh session expiry; cookie is HttpOnly and SameSite=Lax. |
 | `PLATFORM_COMMISSION_BPS` | `1000` | Basis points (1000 = 10%), bounded to 0–10000. Captured per order item. |
 | `COOKIE_SECURE` | `false` | Local HTTP only; production cookies are Secure regardless. |
-| `PAYMENT_PROVIDER` | `mock` | Local signed webhook simulation only. Razorpay test/live adapter is not implemented. Production rejects `mock`; do not claim provider checkout or settlement is live. |
+| `PAYMENT_PROVIDER` | `mock` | Local signed webhook simulation, or `razorpay` for Razorpay INR order creation with Route linked-account transfers and the hosted Checkout widget. Production requires `razorpay`. |
 | `MOCK_PAYMENT_WEBHOOK_SECRET` | local placeholder | Replace with a random secret for local demonstrations. Never expose to the frontend. |
 | `DEMO_ADMIN_EMAIL` | unset | Optional; must be set together with password for a development-only seed admin. |
 | `DEMO_ADMIN_PASSWORD` | unset | Optional; minimum 12 characters; never committed. Seed refuses production. |
-| `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET` | unset | Reserved for a future approved provider adapter; no account/credentials were available. |
+| `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET` | unset | Required when selecting `razorpay`. Configure a Route-capable account and provision each approved seller's linked-account reference through the audited admin API. The webhook must point to `/api/v1/payments/razorpay/webhook` and subscribe to `payment.captured`. Account enablement and live transfers have not been verified here. |
 | `AWS_REGION`, `AWS_S3_BUCKET`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` | unset | S3 upload integration is pending; use a least-privilege role in deployment rather than long-lived keys. |
 | `VITE_API_URL` | `http://localhost:4000/api/v1` | Frontend build-time API base URL. |
 
