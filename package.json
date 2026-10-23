@@ -1,0 +1,17 @@
+{
+  "name": "fs-01-marketplace",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": ["apps/api", "apps/web"],
+  "scripts": {
+    "dev": "concurrently -k -n api,web -c cyan,magenta \"npm:dev:api\" \"npm:dev:web\"",
+    "dev:api": "npm --workspace @fs01/api run dev",
+    "dev:web": "npm --workspace @fs01/web run dev",
+    "build": "npm run build --workspace @fs01/api && npm run build --workspace @fs01/web",
+    "typecheck": "npm run typecheck --workspace @fs01/api && npm run typecheck --workspace @fs01/web",
+    "test": "npm run test --workspace @fs01/api && npm run test --workspace @fs01/web",
+    "seed:dev": "npm --workspace @fs01/api run seed:dev"
+  },
+  "devDependencies": { "concurrently": "^9.2.1", "typescript": "^5.9.3" },
+  "engines": { "node": ">=20" }
+}
