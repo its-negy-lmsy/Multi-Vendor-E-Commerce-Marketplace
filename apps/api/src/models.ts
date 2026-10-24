@@ -80,6 +80,8 @@ const orderItemSchema = new Schema({
   commissionPaise: { type: Number, required: true, min: 0 },
   vendorPayablePaise: { type: Number, required: true, min: 0 },
   fulfillmentStatus: { type: String, enum: ['UNFULFILLED', 'PACKED', 'SHIPPED', 'DELIVERED', 'CANCELLED'], default: 'UNFULFILLED' },
+  trackingNumber: { type: String, default: '' },
+  courier: { type: String, default: '' },
 }, { _id: true, strict: 'throw' });
 const orderSchema = new Schema({
   customerId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
@@ -87,6 +89,7 @@ const orderSchema = new Schema({
   items: { type: [orderItemSchema], required: true, validate: (items: unknown[]) => items.length > 0 },
   addressSnapshot: { type: Schema.Types.Mixed, required: true },
   subtotalPaise: { type: Number, required: true, min: 0 },
+  couponCode: { type: String, default: '' },
   discountPaise: { type: Number, required: true, default: 0, min: 0 },
   totalPaise: { type: Number, required: true, min: 0 },
   commissionPaise: { type: Number, required: true, min: 0 },
@@ -94,9 +97,33 @@ const orderSchema = new Schema({
   paymentStatus: { type: String, enum: ['PENDING', 'PAID', 'FAILED', 'REFUNDED'], default: 'PENDING', index: true },
   paymentReference: { type: String, required: true },
   paymentEventId: { type: String, default: null },
+  invoiceNumber: { type: String, default: '' },
 }, { timestamps: true, strict: 'throw' });
 orderSchema.index({ customerId: 1, idempotencyKey: 1 }, { unique: true });
 orderSchema.index({ 'items.vendorId': 1, status: 1, createdAt: -1 });
+
+const reviewSchema = new Schema({
+  productId: { type: Schema.Types.ObjectId, ref: 'Product', required: true, index: true },
+  customerId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+  customerName: { type: String, required: true, trim: true, maxlength: 100 },
+  rating: { type: Number, required: true, min: 1, max: 5 },
+  headline: { type: String, default: '', trim: true, maxlength: 140 },
+  comment: { type: String, required: true, trim: true, maxlength: 2500 },
+  verifiedPurchase: { type: Boolean, default: true },
+}, { timestamps: true, strict: 'throw' });
+reviewSchema.index({ productId: 1, createdAt: -1 });
+reviewSchema.index({ customerId: 1, productId: 1 }, { unique: true });
+
+const couponSchema = new Schema({
+  code: { type: String, required: true, unique: true, uppercase: true, trim: true, index: true },
+  description: { type: String, required: true, trim: true, maxlength: 200 },
+  discountType: { type: String, enum: ['PERCENTAGE', 'FLAT'], required: true },
+  discountValue: { type: Number, required: true, min: 1 }, // percentage e.g. 15 for 15%, or paise for FLAT
+  minOrderPaise: { type: Number, default: 0, min: 0 },
+  maxDiscountPaise: { type: Number, default: 0, min: 0 }, // 0 = no cap
+  isActive: { type: Boolean, default: true, index: true },
+  expiresAt: { type: Date, default: null },
+}, { timestamps: true, strict: 'throw' });
 
 const ledgerSchema = new Schema({
   vendorId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
@@ -139,3 +166,5 @@ export const Order = mongoose.model('Order', orderSchema);
 export const VendorLedgerEntry = mongoose.model('VendorLedgerEntry', ledgerSchema);
 export const Payment = mongoose.model('Payment', paymentSchema);
 export const OutboxEvent = mongoose.model('OutboxEvent', outboxSchema);
+export const Review = mongoose.model('Review', reviewSchema);
+export const Coupon = mongoose.model('Coupon', couponSchema);

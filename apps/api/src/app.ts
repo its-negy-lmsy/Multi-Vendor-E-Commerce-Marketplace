@@ -11,22 +11,29 @@ import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
 import swaggerUi from 'swagger-ui-express';
 import yaml from 'js-yaml';
+import path from 'node:path';
 import { config } from './config.js';
-import { Address, AuditLog, Cart, Order, Payment, Product, RefreshSession, User, VendorLedgerEntry, VendorProfile } from './models.js';
+import { Address, AuditLog, Cart, Coupon, Order, Payment, Product, RefreshSession, Review, User, VendorLedgerEntry, VendorProfile } from './models.js';
 import { hashToken, makeRefreshToken, refreshCookieOptions, requireAuth, requireRoles, signAccessToken } from './auth.js';
 import { calculateTotals } from './commerce.js';
 import { clearCartCache, readCartCache, writeCartCache } from './cache.js';
 import { processOutboxBatch, queueProductIndex, searchElasticProducts } from './search.js';
 import { createPaymentAttempt, verifyMockPaymentEvent, verifyRazorpayWebhook } from './payments.js';
+import { saveBase64Image } from './storage.js';
+import { renderInvoiceHtml } from './invoice.js';
 
 declare global { namespace Express { interface Request { rawBody?: Buffer } } }
 
 export const app = express();
 app.disable('x-powered-by');
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+}));
 app.use(cors({ origin: config.WEB_ORIGIN, credentials: true }));
-app.use(express.json({ limit: '128kb', verify: (req, _res, buffer) => { (req as express.Request).rawBody = Buffer.from(buffer); } }));
+app.use(express.json({ limit: '10mb', verify: (req, _res, buffer) => { (req as express.Request).rawBody = Buffer.from(buffer); } }));
 app.use(cookieParser());
+app.use('/uploads', express.static(path.resolve(fileURLToPath(new URL('../public/uploads', import.meta.url)))));
 app.use((req, res, next) => { res.setHeader('x-request-id', req.headers['x-request-id']?.toString().slice(0, 100) || crypto.randomUUID()); next(); });
 
 if (config.NODE_ENV !== 'production') {
@@ -164,8 +171,8 @@ app.get('/api/v1/vendors/me', requireAuth, requireRoles('VENDOR'), async (req, r
 });
 app.get('/api/v1/admin/vendors', requireAuth, requireRoles('ADMIN'), async (req, res, next) => {
   try {
-    const status = ['PENDING', 'APPROVED', 'REJECTED', 'SUSPENDED'].includes(String(req.query.status)) ? String(req.query.status) : 'PENDING';
-    res.json({ items: await VendorProfile.find({ status }).sort({ createdAt: 1 }).limit(100).lean() });
+    const filter = ['PENDING', 'APPROVED', 'REJECTED', 'SUSPENDED'].includes(String(req.query.status)) ? { status: String(req.query.status) } : {};
+    res.json({ items: await VendorProfile.find(filter).sort({ createdAt: -1 }).limit(100).lean() });
   } catch (error) { next(error); }
 });
 app.patch('/api/v1/admin/vendors/:id/status', requireAuth, requireRoles('ADMIN'), async (req, res, next) => {
@@ -281,7 +288,11 @@ app.put('/api/v1/cart', requireAuth, requireRoles('CUSTOMER'), async (req, res, 
   } catch (error) { next(error); }
 });
 
-const checkoutSchema = z.object({ addressId: z.string().refine(mongoose.isValidObjectId), items: z.array(z.object({ productId: z.string().refine(mongoose.isValidObjectId), quantity: z.number().int().min(1).max(20) }).strict()).min(1).max(30).refine(items => new Set(items.map(item => item.productId)).size === items.length, 'Duplicate product lines are not allowed') }).strict();
+const checkoutSchema = z.object({
+  addressId: z.string().refine(mongoose.isValidObjectId),
+  items: z.array(z.object({ productId: z.string().refine(mongoose.isValidObjectId), quantity: z.number().int().min(1).max(20) }).strict()).min(1).max(30).refine(items => new Set(items.map(item => item.productId)).size === items.length, 'Duplicate product lines are not allowed'),
+  couponCode: z.string().trim().optional(),
+}).strict();
 app.post('/api/v1/checkout', requireAuth, requireRoles('CUSTOMER'), async (req, res, next) => {
   const reserved: Array<{ id: string; quantity: number }> = [];
   let createdOrderId: mongoose.Types.ObjectId | undefined;
@@ -306,6 +317,23 @@ app.post('/api/v1/checkout', requireAuth, requireRoles('CUSTOMER'), async (req, 
     const productById = new Map(products.map(product => [String(product._id), product]));
     const lines = input.items.map(item => ({ requested: item, product: productById.get(item.productId)! }));
     const totals = calculateTotals(lines.map(line => ({ unitPricePaise: line.product.pricePaise, quantity: line.requested.quantity })), config.PLATFORM_COMMISSION_BPS);
+    
+    let discountPaise = 0;
+    let appliedCouponCode = '';
+    if (input.couponCode) {
+      const coupon = await Coupon.findOne({ code: input.couponCode.toUpperCase(), isActive: true });
+      if (coupon && (!coupon.expiresAt || coupon.expiresAt > new Date()) && totals.subtotalPaise >= coupon.minOrderPaise) {
+        appliedCouponCode = coupon.code;
+        if (coupon.discountType === 'PERCENTAGE') {
+          discountPaise = Math.floor(totals.subtotalPaise * coupon.discountValue / 100);
+          if (coupon.maxDiscountPaise > 0) discountPaise = Math.min(discountPaise, coupon.maxDiscountPaise);
+        } else if (coupon.discountType === 'FLAT') {
+          discountPaise = Math.min(totals.subtotalPaise, coupon.discountValue);
+        }
+      }
+    }
+    const finalTotalPaise = Math.max(0, totals.subtotalPaise - discountPaise);
+
     const orderItems = lines.map(({ requested, product }) => {
       const lineTotal = product.pricePaise * requested.quantity;
       const commission = Math.floor(lineTotal * config.PLATFORM_COMMISSION_BPS / 10000);
@@ -323,7 +351,8 @@ app.post('/api/v1/checkout', requireAuth, requireRoles('CUSTOMER'), async (req, 
     const orderId = new mongoose.Types.ObjectId();
     createdOrderId = orderId;
     const pendingReference = `pending_${randomUUID()}`;
-    const order = new Order({ _id: orderId, customerId: req.identity!.id, idempotencyKey: key, items: orderItems, addressSnapshot: { label: address.label, recipient: address.recipient, phone: address.phone, line1: address.line1, line2: address.line2, city: address.city, state: address.state, postalCode: address.postalCode, country: address.country }, subtotalPaise: totals.subtotalPaise, discountPaise: 0, totalPaise: totals.subtotalPaise, commissionPaise: totals.commissionPaise, status: 'PAYMENT_PENDING', paymentStatus: 'PENDING', paymentReference: pendingReference });
+    const invoiceNumber = `INV-${Date.now().toString().slice(-6)}-${orderId.toString().slice(-4).toUpperCase()}`;
+    const order = new Order({ _id: orderId, customerId: req.identity!.id, idempotencyKey: key, items: orderItems, addressSnapshot: { label: address.label, recipient: address.recipient, phone: address.phone, line1: address.line1, line2: address.line2, city: address.city, state: address.state, postalCode: address.postalCode, country: address.country }, subtotalPaise: totals.subtotalPaise, couponCode: appliedCouponCode, discountPaise, totalPaise: finalTotalPaise, commissionPaise: totals.commissionPaise, status: 'PAYMENT_PENDING', paymentStatus: 'PENDING', paymentReference: pendingReference, invoiceNumber });
     await order.save();
     const transfersByVendor = new Map<string, { amountPaise: number; accountId: string }>();
     for (const item of orderItems) {
@@ -331,10 +360,10 @@ app.post('/api/v1/checkout', requireAuth, requireRoles('CUSTOMER'), async (req, 
       const transfer = transfersByVendor.get(vendorKey) ?? { amountPaise: 0, accountId: profile?.razorpayLinkedAccountId ?? '' };
       transfer.amountPaise += item.vendorPayablePaise; transfersByVendor.set(vendorKey, transfer);
     }
-    const paymentAttempt = await createPaymentAttempt({ amountPaise: totals.subtotalPaise, receipt: String(orderId), transfers: [...transfersByVendor].filter(([, value]) => value.amountPaise > 0).map(([vendorId, value]) => ({ vendorId, accountId: value.accountId, amountPaise: value.amountPaise })) });
+    const paymentAttempt = await createPaymentAttempt({ amountPaise: finalTotalPaise, receipt: String(orderId), transfers: [...transfersByVendor].filter(([, value]) => value.amountPaise > 0).map(([vendorId, value]) => ({ vendorId, accountId: value.accountId, amountPaise: value.amountPaise })) });
     order.paymentReference = paymentAttempt.reference; await order.save();
-    await Payment.create({ orderId, provider: paymentAttempt.provider, providerReference: paymentAttempt.reference, eventId: `attempt:${paymentAttempt.reference}`, status: 'PENDING', amountPaise: totals.subtotalPaise });
-    res.status(201).json({ order, payment: { ...paymentAttempt, status: 'PENDING', amountPaise: totals.subtotalPaise, currency: 'INR' } });
+    await Payment.create({ orderId, provider: paymentAttempt.provider, providerReference: paymentAttempt.reference, eventId: `attempt:${paymentAttempt.reference}`, status: 'PENDING', amountPaise: finalTotalPaise });
+    res.status(201).json({ order, payment: { ...paymentAttempt, status: 'PENDING', amountPaise: finalTotalPaise, currency: 'INR' } });
   } catch (error) {
     if (createdOrderId) { await Promise.all([Order.deleteOne({ _id: createdOrderId }), Payment.deleteMany({ orderId: createdOrderId })]); }
     if (reserved.length) await Promise.all(reserved.map(item => Product.updateOne({ _id: item.id }, { $inc: { stock: item.quantity } })));
@@ -447,13 +476,213 @@ app.patch('/api/v1/vendor/orders/:orderId/items/:itemId/fulfillment', requireAut
   try {
     if (!mongoose.isValidObjectId(req.params.orderId) || !mongoose.isValidObjectId(req.params.itemId)) { res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Order item not found' } }); return; }
     const orderId = String(req.params.orderId), itemId = String(req.params.itemId);
-    const input = z.object({ status: z.enum(['PACKED', 'SHIPPED']) }).strict().parse(req.body);
+    const input = z.object({
+      status: z.enum(['PACKED', 'SHIPPED', 'DELIVERED']),
+      trackingNumber: z.string().trim().optional(),
+      courier: z.string().trim().optional(),
+    }).strict().parse(req.body);
     const order = await Order.findOne({ _id: orderId, items: { $elemMatch: { _id: itemId, vendorId: req.identity!.id } } });
     if (!order) { res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Order item not found' } }); return; }
     const item = order.items.id(itemId);
-    if (!item || !(['UNFULFILLED', 'PACKED'].includes(item.fulfillmentStatus) && (input.status === 'PACKED' || item.fulfillmentStatus === 'PACKED'))) { res.status(409).json({ error: { code: 'INVALID_TRANSITION', message: 'Order item cannot move to that fulfillment state' } }); return; }
-    if (item.fulfillmentStatus === 'UNFULFILLED' && input.status !== 'PACKED' || item.fulfillmentStatus === 'PACKED' && input.status !== 'SHIPPED') { res.status(409).json({ error: { code: 'INVALID_TRANSITION', message: 'Fulfillment must move from unfulfilled to packed to shipped' } }); return; }
-    item.fulfillmentStatus = input.status; await order.save(); res.json({ item });
+    if (!item) { res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Order item not found' } }); return; }
+    item.fulfillmentStatus = input.status;
+    if (input.trackingNumber) (item as any).trackingNumber = input.trackingNumber;
+    if (input.courier) (item as any).courier = input.courier;
+
+    const allStatuses = order.items.map(i => i.fulfillmentStatus);
+    if (allStatuses.every(s => s === 'DELIVERED')) {
+      order.status = 'DELIVERED';
+    } else if (allStatuses.every(s => s === 'SHIPPED' || s === 'DELIVERED')) {
+      order.status = 'SHIPPED';
+    } else if (allStatuses.some(s => s === 'PACKED' || s === 'SHIPPED' || s === 'DELIVERED')) {
+      order.status = 'PACKED';
+    }
+
+    await order.save();
+    res.json({ item, orderStatus: order.status });
+  } catch (error) { next(error); }
+});
+
+// --- Media Upload (S3 / Local Fallback) ---
+app.post('/api/v1/upload', requireAuth, async (req, res, next) => {
+  try {
+    const input = z.object({
+      dataUrl: z.string().min(10),
+      filename: z.string().trim().optional(),
+    }).parse(req.body);
+    const result = await saveBase64Image(input.dataUrl, input.filename || 'product-upload.jpg');
+    res.status(201).json(result);
+  } catch (error) { next(error); }
+});
+
+// --- Reviews & Ratings ---
+app.get('/api/v1/products/:id/reviews', async (req, res, next) => {
+  try {
+    if (!mongoose.isValidObjectId(req.params.id)) { res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Product not found' } }); return; }
+    const reviews = await Review.find({ productId: req.params.id }).sort({ createdAt: -1 }).limit(50).lean();
+    res.json({ items: reviews, total: reviews.length });
+  } catch (error) { next(error); }
+});
+
+app.post('/api/v1/products/:id/reviews', requireAuth, requireRoles('CUSTOMER'), async (req, res, next) => {
+  try {
+    if (!mongoose.isValidObjectId(req.params.id)) { res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Product not found' } }); return; }
+    const input = z.object({
+      rating: z.coerce.number().int().min(1).max(5),
+      headline: z.string().trim().max(140).optional(),
+      comment: z.string().trim().min(3).max(2500),
+    }).parse(req.body);
+
+    const product = await Product.findById(req.params.id);
+    if (!product) { res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Product not found' } }); return; }
+
+    const review = await Review.findOneAndUpdate(
+      { customerId: req.identity!.id, productId: req.params.id },
+      {
+        $set: {
+          customerName: req.identity!.name,
+          rating: input.rating,
+          headline: input.headline ?? '',
+          comment: input.comment,
+          verifiedPurchase: true,
+        },
+      },
+      { upsert: true, new: true }
+    );
+
+    // Recalculate average rating
+    const stats = await Review.aggregate([
+      { $match: { productId: new mongoose.Types.ObjectId(String(req.params.id)) } },
+      { $group: { _id: null, avg: { $avg: '$rating' }, count: { $sum: 1 } } },
+    ]);
+
+    if (stats.length) {
+      product.ratingAverage = Number(stats[0].avg.toFixed(1));
+      product.ratingCount = stats[0].count;
+      await product.save();
+      await queueProductIndex(String(product._id));
+    }
+
+    res.status(201).json({ review, productRating: { average: product.ratingAverage, count: product.ratingCount } });
+  } catch (error) { next(error); }
+});
+
+// --- Coupons System ---
+app.get('/api/v1/coupons', async (_req, res, next) => {
+  try {
+    const coupons = await Coupon.find({ isActive: true }).select('code description discountType discountValue minOrderPaise').lean();
+    res.json({ items: coupons });
+  } catch (error) { next(error); }
+});
+
+app.post('/api/v1/coupons/apply', async (req, res, next) => {
+  try {
+    const input = z.object({
+      code: z.string().trim().min(1),
+      subtotalPaise: z.number().int().min(0),
+    }).parse(req.body);
+
+    const coupon = await Coupon.findOne({ code: input.code.toUpperCase(), isActive: true });
+    if (!coupon) {
+      res.status(404).json({ error: { code: 'COUPON_NOT_FOUND', message: 'Invalid or inactive promotional code' } });
+      return;
+    }
+    if (coupon.expiresAt && coupon.expiresAt < new Date()) {
+      res.status(400).json({ error: { code: 'COUPON_EXPIRED', message: 'This promo code has expired' } });
+      return;
+    }
+    if (input.subtotalPaise < coupon.minOrderPaise) {
+      res.status(400).json({ error: { code: 'MIN_ORDER_NOT_MET', message: `Minimum order of ₹${(coupon.minOrderPaise / 100).toFixed(0)} required for this coupon` } });
+      return;
+    }
+
+    let discountPaise = 0;
+    if (coupon.discountType === 'PERCENTAGE') {
+      discountPaise = Math.floor(input.subtotalPaise * coupon.discountValue / 100);
+      if (coupon.maxDiscountPaise > 0) discountPaise = Math.min(discountPaise, coupon.maxDiscountPaise);
+    } else {
+      discountPaise = Math.min(input.subtotalPaise, coupon.discountValue);
+    }
+
+    res.json({
+      valid: true,
+      coupon: { code: coupon.code, description: coupon.description, discountType: coupon.discountType, discountValue: coupon.discountValue },
+      discountPaise,
+      newTotalPaise: Math.max(0, input.subtotalPaise - discountPaise),
+    });
+  } catch (error) { next(error); }
+});
+
+app.get('/api/v1/admin/coupons', requireAuth, requireRoles('ADMIN'), async (_req, res, next) => {
+  try { res.json({ items: await Coupon.find().sort({ createdAt: -1 }).lean() }); } catch (error) { next(error); }
+});
+
+app.post('/api/v1/admin/coupons', requireAuth, requireRoles('ADMIN'), async (req, res, next) => {
+  try {
+    const input = z.object({
+      code: z.string().trim().min(3).max(30).toUpperCase(),
+      description: z.string().trim().min(3).max(200),
+      discountType: z.enum(['PERCENTAGE', 'FLAT']),
+      discountValue: z.number().int().min(1),
+      minOrderPaise: z.number().int().min(0).default(0),
+      maxDiscountPaise: z.number().int().min(0).default(0),
+      isActive: z.boolean().default(true),
+    }).parse(req.body);
+
+    const coupon = await Coupon.create(input);
+    res.status(201).json({ coupon });
+  } catch (error) { next(error); }
+});
+
+// --- Tax Invoices ---
+app.get('/api/v1/orders/:id/invoice', requireAuth, async (req, res, next) => {
+  try {
+    if (!mongoose.isValidObjectId(req.params.id)) { res.status(404).send('Order not found'); return; }
+    const order = await Order.findById(req.params.id);
+    if (!order) { res.status(404).send('Order not found'); return; }
+
+    const isCustomer = String(order.customerId) === req.identity!.id;
+    const isVendor = order.items.some(item => String(item.vendorId) === req.identity!.id);
+    const isAdmin = req.identity!.role === 'ADMIN';
+
+    if (!isCustomer && !isVendor && !isAdmin) {
+      res.status(403).send('Unauthorized to access this invoice');
+      return;
+    }
+
+    // Lookup primary vendor profile for invoice details
+    const vendorProfile = await VendorProfile.findOne({ userId: order.items[0]?.vendorId }).lean();
+    const customerUser = await User.findById(order.customerId).lean();
+
+    const invoiceHtml = renderInvoiceHtml({
+      invoiceNumber: (order as any).invoiceNumber || `INV-${order._id.toString().slice(-8).toUpperCase()}`,
+      orderId: String(order._id),
+      orderDate: (order as any).createdAt || new Date(),
+      customer: {
+        name: customerUser?.name || order.addressSnapshot.recipient,
+        email: customerUser?.email || '',
+        phone: order.addressSnapshot.phone,
+        address: order.addressSnapshot,
+      },
+      vendor: {
+        shopName: vendorProfile?.shopName || 'Marketplace Artisan Partner',
+        slug: vendorProfile?.slug,
+      },
+      items: order.items.map(item => ({
+        name: item.name,
+        quantity: item.quantity,
+        unitPricePaise: item.unitPricePaise,
+        totalPaise: item.unitPricePaise * item.quantity,
+      })),
+      subtotalPaise: order.subtotalPaise,
+      discountPaise: (order as any).discountPaise || 0,
+      totalPaise: order.totalPaise,
+      paymentReference: order.paymentReference,
+      paymentStatus: order.paymentStatus,
+    });
+
+    res.setHeader('Content-Type', 'text/html');
+    res.send(invoiceHtml);
   } catch (error) { next(error); }
 });
 app.get('/api/v1/vendor/ledger', requireAuth, requireRoles('VENDOR'), requireApprovedVendor, async (req, res, next) => {
