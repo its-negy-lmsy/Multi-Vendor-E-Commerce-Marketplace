@@ -285,12 +285,30 @@ async function run() {
 
   // 10. Concurrent Inventory Depletion Race Test
   console.log('\n[10] Testing Concurrent Checkout Race Condition on Limited Stock...');
-  // Find a product with limited stock or create/update one
-  const limitedProduct = products[products.length - 1];
+  // Find a product with available stock
+  const freshList = (await request('/products?limit=24')).json?.items || [];
+  const limitedProduct = freshList.find(p => p.stock > 0);
+  if (!limitedProduct) {
+    throw new Error('No in-stock products found for race test');
+  }
   console.log(`  Target product: "${limitedProduct.name}" (ID: ${limitedProduct._id}, Current stock: ${limitedProduct.stock})`);
 
-  // Fire two simultaneous checkouts requesting the entire available stock
-  const qtyToRequest = limitedProduct.stock > 0 ? limitedProduct.stock : 1;
+  // Deplete stock down to a small amount (<= 5) so both race requests can ask for the exact remaining stock
+  let currentStock = limitedProduct.stock;
+  while (currentStock > 6) {
+    const chunk = Math.min(currentStock - 4, 15);
+    const drainRes = await request('/checkout', {
+      method: 'POST',
+      headers: { ...customerHeaders, 'Idempotency-Key': `drain-${Date.now()}-${Math.random()}` },
+      body: { addressId, items: [{ productId: limitedProduct._id, quantity: chunk }] },
+    });
+    if (drainRes.status !== 201) break;
+    currentStock -= chunk;
+  }
+  console.log(`  Stock tuned for race condition: ${currentStock} units remaining`);
+
+  // Fire two simultaneous checkouts requesting the entire available stock (between 1 and 6 units)
+  const qtyToRequest = Math.max(1, Math.min(currentStock, 6));
   const [race1, race2] = await Promise.all([
     request('/checkout', {
       method: 'POST',
