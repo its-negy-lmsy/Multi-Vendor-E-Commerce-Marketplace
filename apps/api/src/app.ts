@@ -48,7 +48,12 @@ app.get('/api/v1/health/ready', (_req, res) => {
   res.status(database ? 200 : 503).json({ status: database ? 'ready' : 'not_ready', dependencies: { mongodb: database ? 'connected' : 'disconnected' } });
 });
 
-const authLimit = rateLimit({ windowMs: 15 * 60 * 1000, limit: 20, standardHeaders: true, legacyHeaders: false });
+const authLimit = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: config.NODE_ENV === 'production' ? 20 : 1000,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 const registerSchema = z.object({ name: z.string().trim().min(2).max(80), email: z.email().max(254), password: z.string().min(10).max(128) }).strict();
 const loginSchema = z.object({ email: z.email().max(254), password: z.string().min(1).max(128) }).strict();
 const publicUser = (user: { _id: unknown; name: string; email: string; role: string }) => ({ id: String(user._id), name: user.name, email: user.email, role: user.role });

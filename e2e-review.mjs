@@ -39,8 +39,9 @@ async function run() {
   }
   const products = catalogRes.json.items;
   console.log(`✓ Fetched ${products.length} products from catalog`);
-  const testProduct = products[0];
-  const testProduct2 = products[1];
+  const inStock = products.filter(p => p.stock >= 2);
+  const testProduct = inStock[0] || products[0];
+  const testProduct2 = inStock[1] || products[1];
   console.log(`  Sample product: "${testProduct.name}" (ID: ${testProduct._id}, Price: ₹${testProduct.pricePaise / 100}, Stock: ${testProduct.stock})`);
 
   // 3. Customer Auth
