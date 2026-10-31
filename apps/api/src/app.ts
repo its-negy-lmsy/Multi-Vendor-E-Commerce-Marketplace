@@ -13,7 +13,7 @@ import swaggerUi from 'swagger-ui-express';
 import yaml from 'js-yaml';
 import path from 'node:path';
 import { config } from './config.js';
-import { Address, AuditLog, Cart, Coupon, Order, Payment, Product, RefreshSession, Review, User, VendorLedgerEntry, VendorProfile } from './models.js';
+import { Address, AuditLog, Cart, Coupon, Order, Payment, Product, RefreshSession, Review, User, VendorLedgerEntry, VendorProfile, Wishlist } from './models.js';
 import { hashToken, makeRefreshToken, refreshCookieOptions, requireAuth, requireRoles, signAccessToken } from './auth.js';
 import { calculateTotals } from './commerce.js';
 import { clearCartCache, readCartCache, writeCartCache } from './cache.js';
@@ -267,6 +267,38 @@ app.post('/api/v1/users/me/addresses', requireAuth, requireRoles('CUSTOMER'), as
   } catch (error) { next(error); }
 });
 
+app.get('/api/v1/users/me/wishlist', requireAuth, requireRoles('CUSTOMER'), async (req, res, next) => {
+  try {
+    const list = await Wishlist.findOne({ userId: req.identity!.id }).lean();
+    res.json({ productIds: (list?.productIds ?? []).map(id => String(id)) });
+  } catch (error) { next(error); }
+});
+
+app.post('/api/v1/users/me/wishlist/toggle', requireAuth, requireRoles('CUSTOMER'), async (req, res, next) => {
+  try {
+    const input = z.object({ productId: z.string().refine(mongoose.isValidObjectId) }).parse(req.body);
+    let list = await Wishlist.findOne({ userId: req.identity!.id });
+    if (!list) {
+      list = new Wishlist({ userId: req.identity!.id, productIds: [new mongoose.Types.ObjectId(input.productId)] });
+      await list.save();
+      res.json({ productIds: [input.productId], added: true });
+      return;
+    }
+    const pId = new mongoose.Types.ObjectId(input.productId);
+    const existingIdx = list.productIds.findIndex(id => id.equals(pId));
+    let added = false;
+    if (existingIdx >= 0) {
+      list.productIds.splice(existingIdx, 1);
+      added = false;
+    } else {
+      list.productIds.push(pId);
+      added = true;
+    }
+    await list.save();
+    res.json({ productIds: list.productIds.map(id => String(id)), added });
+  } catch (error) { next(error); }
+});
+
 const cartItemsSchema = z.array(z.object({ productId: z.string().refine(mongoose.isValidObjectId), quantity: z.number().int().min(1).max(20) }).strict()).max(30).refine(items => new Set(items.map(item => item.productId)).size === items.length, 'Duplicate products are not allowed');
 app.get('/api/v1/cart', requireAuth, requireRoles('CUSTOMER'), async (req, res, next) => {
   try {
@@ -347,7 +379,7 @@ app.post('/api/v1/checkout', requireAuth, requireRoles('CUSTOMER'), async (req, 
     const orderItems = lines.map(({ requested, product }) => {
       const lineTotal = product.pricePaise * requested.quantity;
       const commission = Math.floor(lineTotal * config.PLATFORM_COMMISSION_BPS / 10000);
-      return { productId: product._id, vendorId: product.vendorId, name: product.name, quantity: requested.quantity, unitPricePaise: product.pricePaise, commissionPaise: commission, vendorPayablePaise: lineTotal - commission, fulfillmentStatus: 'UNFULFILLED' as const };
+      return { productId: product._id, vendorId: product.vendorId, name: product.name, imageUrl: product.imageUrl || '', quantity: requested.quantity, unitPricePaise: product.pricePaise, commissionPaise: commission, vendorPayablePaise: lineTotal - commission, fulfillmentStatus: 'UNFULFILLED' as const };
     });
     for (const line of lines) {
       const updated = await Product.findOneAndUpdate({ _id: line.product._id, status: 'PUBLISHED', stock: { $gte: line.requested.quantity } }, { $inc: { stock: -line.requested.quantity } }, { new: true });
@@ -517,6 +549,42 @@ app.get('/api/v1/orders/:id', requireAuth, async (req, res, next) => {
     res.json({ order });
   } catch (error) { next(error); }
 });
+
+app.post('/api/v1/orders/:id/cancel', requireAuth, requireRoles('CUSTOMER'), async (req, res, next) => {
+  try {
+    if (!mongoose.isValidObjectId(req.params.id)) { res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Order not found' } }); return; }
+    const order = await Order.findOne({ _id: req.params.id, customerId: req.identity!.id });
+    if (!order) { res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Order not found' } }); return; }
+    if (!['PLACED', 'PAYMENT_PENDING'].includes(order.status)) {
+      res.status(400).json({ error: { code: 'CANNOT_CANCEL', message: `Order with status ${order.status} cannot be cancelled directly.` } });
+      return;
+    }
+    if (order.items.some(i => ['SHIPPED', 'DELIVERED'].includes(i.fulfillmentStatus))) {
+      res.status(400).json({ error: { code: 'CANNOT_CANCEL', message: 'One or more items in your order have already shipped.' } });
+      return;
+    }
+    order.status = 'CANCELLED';
+    order.paymentStatus = 'REFUNDED';
+    for (const item of order.items) {
+      item.fulfillmentStatus = 'CANCELLED';
+    }
+    await order.save();
+
+    await Promise.all(order.items.map(item => Product.updateOne({ _id: item.productId }, { $inc: { stock: item.quantity } })));
+    await VendorLedgerEntry.updateMany({ orderId: order._id, status: 'PAYABLE' }, { $set: { status: 'REVERSED' } });
+
+    await AuditLog.create({
+      actorId: req.identity!.id,
+      action: 'ORDER_CANCELLED',
+      resourceType: 'ORDER',
+      resourceId: String(order._id),
+      summary: `Order ${order._id} cancelled by customer and refunded`,
+      requestId: String(res.getHeader('x-request-id') || 'system'),
+    });
+
+    res.json({ success: true, orderId: String(order._id), status: order.status, paymentStatus: order.paymentStatus });
+  } catch (error) { next(error); }
+});
 app.get('/api/v1/vendor/orders', requireAuth, requireRoles('VENDOR'), requireApprovedVendor, async (req, res, next) => {
   try {
     const orders = await Order.find({ items: { $elemMatch: { vendorId: req.identity!.id } } }).sort({ createdAt: -1 }).limit(100).lean();
@@ -528,7 +596,7 @@ app.patch('/api/v1/vendor/orders/:orderId/items/:itemId/fulfillment', requireAut
     if (!mongoose.isValidObjectId(req.params.orderId) || !mongoose.isValidObjectId(req.params.itemId)) { res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Order item not found' } }); return; }
     const orderId = String(req.params.orderId), itemId = String(req.params.itemId);
     const input = z.object({
-      status: z.enum(['PACKED', 'SHIPPED', 'DELIVERED']),
+      status: z.enum(['PACKED', 'SHIPPED', 'DELIVERED', 'CANCELLED']),
       trackingNumber: z.string().trim().optional(),
       courier: z.string().trim().optional(),
     }).strict().parse(req.body);
@@ -536,16 +604,26 @@ app.patch('/api/v1/vendor/orders/:orderId/items/:itemId/fulfillment', requireAut
     if (!order) { res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Order item not found' } }); return; }
     const item = order.items.id(itemId);
     if (!item) { res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Order item not found' } }); return; }
+    
+    const prevStatus = item.fulfillmentStatus;
     item.fulfillmentStatus = input.status;
     if (input.trackingNumber) (item as any).trackingNumber = input.trackingNumber;
     if (input.courier) (item as any).courier = input.courier;
 
-    const allStatuses = order.items.map(i => i.fulfillmentStatus);
-    if (allStatuses.every(s => s === 'DELIVERED')) {
+    if (input.status === 'CANCELLED' && prevStatus !== 'CANCELLED') {
+      await Product.updateOne({ _id: item.productId }, { $inc: { stock: item.quantity } });
+      await VendorLedgerEntry.updateOne({ orderId: order._id, orderItemId: item._id, status: 'PAYABLE' }, { $set: { status: 'REVERSED' } });
+    }
+
+    const nonCancelled = order.items.filter(i => i.fulfillmentStatus !== 'CANCELLED');
+    if (nonCancelled.length === 0) {
+      order.status = 'CANCELLED';
+      order.paymentStatus = 'REFUNDED';
+    } else if (nonCancelled.every(s => s.fulfillmentStatus === 'DELIVERED')) {
       order.status = 'DELIVERED';
-    } else if (allStatuses.every(s => s === 'SHIPPED' || s === 'DELIVERED')) {
+    } else if (nonCancelled.every(s => s.fulfillmentStatus === 'SHIPPED' || s.fulfillmentStatus === 'DELIVERED')) {
       order.status = 'SHIPPED';
-    } else if (allStatuses.some(s => s === 'PACKED' || s === 'SHIPPED' || s === 'DELIVERED')) {
+    } else if (nonCancelled.some(s => ['PACKED', 'SHIPPED', 'DELIVERED'].includes(s.fulfillmentStatus))) {
       order.status = 'PACKED';
     }
 

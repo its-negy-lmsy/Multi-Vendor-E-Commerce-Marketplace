@@ -19,6 +19,7 @@ import {
   useCartQuery,
   useMeQuery,
   useProductQuery,
+  useProductsQuery,
   useReviewsQuery,
   useUpdateCartMutation,
 } from '../api';
@@ -51,6 +52,11 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   const { data: identity } = useMeQuery();
   const isCustomer = identity?.user?.role === 'CUSTOMER';
   const { data: cartData } = useCartQuery(undefined, { skip: !isCustomer });
+  const { data: allProductsData } = useProductsQuery({ limit: 12 });
+  const otherProducts = (allProductsData?.items ?? []).filter(p => p._id !== (id || ''));
+  const bundleItem1 = otherProducts[0];
+  const bundleItem2 = otherProducts[1];
+
   const [updateCart] = useUpdateCartMutation();
   const [addReview, addReviewState] = useAddReviewMutation();
 
@@ -143,6 +149,34 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
       onOpenCart();
     } catch {
       onShowNotice('Could not start checkout.');
+    }
+  };
+
+  const handleAddBundleToCart = async () => {
+    if (!isCustomer) {
+      onOpenAuth();
+      return;
+    }
+    const items = (cartData?.items ?? []).map(i => ({ productId: i.product._id, quantity: i.quantity }));
+    const toAdd = [product._id];
+    if (bundleItem1) toAdd.push(bundleItem1._id);
+    if (bundleItem2) toAdd.push(bundleItem2._id);
+
+    for (const pId of toAdd) {
+      const match = items.find(i => i.productId === pId);
+      if (match) {
+        match.quantity = Math.min(20, match.quantity + 1);
+      } else {
+        items.push({ productId: pId, quantity: 1 });
+      }
+    }
+
+    try {
+      await updateCart({ items }).unwrap();
+      onShowNotice(`Added complete 3-piece artisan bundle to your Cart!`);
+      onOpenCart();
+    } catch {
+      onShowNotice('Could not add bundle to cart. Check available stock.');
     }
   };
 
@@ -489,41 +523,42 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
       </div>
 
       {/* 3. Frequently Bought Together Bundle Widget */}
-      <section className="amz-bundle-box">
-        <h3 className="amz-bundle-title">Frequently bought together</h3>
-        <div className="amz-bundle-row">
-          <div className="amz-bundle-item">
-            <img src={product.imageUrl} alt={product.name} />
-          </div>
-          <span className="amz-bundle-plus">+</span>
-          <div className="amz-bundle-item">
-            <img
-              src="https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=400&q=80"
-              alt="Clothbound Journal"
-            />
-          </div>
-          <span className="amz-bundle-plus">+</span>
-          <div className="amz-bundle-item">
-            <img
-              src="https://images.unsplash.com/photo-1597481499750-3e6b22637e12?auto=format&fit=crop&w=400&q=80"
-              alt="Artisan Tea"
-            />
-          </div>
+      {bundleItem1 && bundleItem2 && (
+        <section className="amz-bundle-box">
+          <h3 className="amz-bundle-title">Frequently bought together</h3>
+          <div className="amz-bundle-row">
+            <Link to={`/product/${product._id}`} className="amz-bundle-item" title={product.name}>
+              <img src={product.imageUrl} alt={product.name} />
+            </Link>
+            <span className="amz-bundle-plus">+</span>
+            <Link to={`/product/${bundleItem1._id}`} className="amz-bundle-item" title={bundleItem1.name}>
+              <img src={bundleItem1.imageUrl} alt={bundleItem1.name} />
+            </Link>
+            <span className="amz-bundle-plus">+</span>
+            <Link to={`/product/${bundleItem2._id}`} className="amz-bundle-item" title={bundleItem2.name}>
+              <img src={bundleItem2.imageUrl} alt={bundleItem2.name} />
+            </Link>
 
-          <div className="amz-bundle-calc">
-            <div className="amz-bundle-total">
-              Total price: <b>{formatPrice(product.pricePaise + 119900 + 99900)}</b>
+            <div className="amz-bundle-calc">
+              <div className="amz-bundle-total">
+                Total price: <b>{formatPrice(product.pricePaise + bundleItem1.pricePaise + bundleItem2.pricePaise)}</b>
+              </div>
+              <button
+                className="amz-btn-cart"
+                style={{ width: 'auto', padding: '8px 20px' }}
+                onClick={handleAddBundleToCart}
+              >
+                Add all three to Cart
+              </button>
             </div>
-            <button
-              className="amz-btn-cart"
-              style={{ width: 'auto', padding: '8px 20px' }}
-              onClick={handleAddToCart}
-            >
-              Add all three to Cart
-            </button>
           </div>
-        </div>
-      </section>
+          <div style={{ marginTop: 12, fontSize: 12, color: '#565959', display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <div>• <b>This item:</b> {product.name} ({formatPrice(product.pricePaise)})</div>
+            <div>• <Link to={`/product/${bundleItem1._id}`} style={{ color: '#007185' }}>{bundleItem1.name}</Link> ({formatPrice(bundleItem1.pricePaise)})</div>
+            <div>• <Link to={`/product/${bundleItem2._id}`} style={{ color: '#007185' }}>{bundleItem2.name}</Link> ({formatPrice(bundleItem2.pricePaise)})</div>
+          </div>
+        </section>
+      )}
 
       {/* 4. Customer Questions & Answers Section */}
       <section id="qa" style={{ marginTop: 40, borderTop: '1px solid #d5d9d9', paddingTop: 24 }}>

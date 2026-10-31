@@ -48,6 +48,10 @@ export const VendorDashboard: React.FC = () => {
   const [category, setCategory] = useState('Home & Living');
   const [description, setDescription] = useState('');
   const [priceInr, setPriceInr] = useState('');
+  const [mrpInr, setMrpInr] = useState('');
+  const [badge, setBadge] = useState('');
+  const [material, setMaterial] = useState('');
+  const [origin, setOrigin] = useState('');
   const [stock, setStock] = useState('10');
   const [imageUrl, setImageUrl] = useState('');
   const [uploading, setUploading] = useState(false);
@@ -92,11 +96,19 @@ export const VendorDashboard: React.FC = () => {
     e.preventDefault();
     try {
       const pricePaise = Math.round(parseFloat(priceInr) * 100);
+      const mrpPaise = mrpInr ? Math.round(parseFloat(mrpInr) * 100) : undefined;
+      const specs: Record<string, string> = {};
+      if (material.trim()) specs['Material'] = material.trim();
+      if (origin.trim()) specs['Origin'] = origin.trim();
+
       await createProduct({
         name,
         category,
         description,
         pricePaise,
+        mrpPaise,
+        badge: badge.trim() || undefined,
+        specs: Object.keys(specs).length ? specs : undefined,
         stock: parseInt(stock, 10),
         imageUrl: imageUrl || 'https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=800&q=80',
       }).unwrap();
@@ -104,6 +116,10 @@ export const VendorDashboard: React.FC = () => {
       setName('');
       setDescription('');
       setPriceInr('');
+      setMrpInr('');
+      setBadge('');
+      setMaterial('');
+      setOrigin('');
       setImageUrl('');
       setNotice('Product successfully published to marketplace catalog!');
     } catch (err: any) {
@@ -111,7 +127,10 @@ export const VendorDashboard: React.FC = () => {
     }
   };
 
-  const handleFulfillItem = async (orderId: string, itemId: string, nextStatus: 'PACKED' | 'SHIPPED' | 'DELIVERED') => {
+  const handleFulfillItem = async (orderId: string, itemId: string, nextStatus: 'PACKED' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED') => {
+    if (nextStatus === 'CANCELLED' && !window.confirm('Are you sure you want to cancel this line item? Stock will be restored and payable ledger credit reversed.')) {
+      return;
+    }
     try {
       await updateFulfillment({
         orderId,
@@ -385,8 +404,19 @@ export const VendorDashboard: React.FC = () => {
                             Mark as Delivered
                           </button>
                         )}
+                        {(item.fulfillmentStatus === 'UNFULFILLED' || item.fulfillmentStatus === 'PACKED') && (
+                          <button
+                            onClick={() => handleFulfillItem(order._id, item._id, 'CANCELLED')}
+                            style={{ padding: '6px 12px', fontSize: 11, background: '#fee2e2', color: '#b91c1c', border: '1px solid #fca5a5', borderRadius: 4, cursor: 'pointer', fontWeight: 600 }}
+                          >
+                            Cancel / Out of Stock
+                          </button>
+                        )}
                         {item.fulfillmentStatus === 'DELIVERED' && (
                           <span style={{ fontSize: 12, color: '#16a34a', fontWeight: 700 }}>✓ Delivered</span>
+                        )}
+                        {item.fulfillmentStatus === 'CANCELLED' && (
+                          <span style={{ fontSize: 12, color: '#dc2626', fontWeight: 700 }}>✗ Cancelled</span>
                         )}
                       </div>
                     </div>
@@ -502,6 +532,59 @@ export const VendorDashboard: React.FC = () => {
                     value={priceInr}
                     onChange={e => setPriceInr(e.target.value)}
                     placeholder="e.g. 2499"
+                    style={{ padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 4 }}
+                  />
+                </label>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <label style={{ fontSize: 12, fontWeight: 600, display: 'grid', gap: 4 }}>
+                  M.R.P. (in ₹, optional for discount)
+                  <input
+                    type="number"
+                    min="1"
+                    step="0.01"
+                    value={mrpInr}
+                    onChange={e => setMrpInr(e.target.value)}
+                    placeholder="e.g. 3499"
+                    style={{ padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 4 }}
+                  />
+                </label>
+
+                <label style={{ fontSize: 12, fontWeight: 600, display: 'grid', gap: 4 }}>
+                  Feature Badge (optional)
+                  <select
+                    value={badge}
+                    onChange={e => setBadge(e.target.value)}
+                    style={{ padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 4, background: '#fff' }}
+                  >
+                    <option value="">No Badge</option>
+                    <option value="Handmade">Handmade</option>
+                    <option value="Artisan Pick">Artisan Pick</option>
+                    <option value="Limited Deal">Limited Deal</option>
+                    <option value="#1 Best Seller">#1 Best Seller</option>
+                    <option value="Marketplace Choice">Marketplace Choice</option>
+                  </select>
+                </label>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <label style={{ fontSize: 12, fontWeight: 600, display: 'grid', gap: 4 }}>
+                  Primary Material (Spec)
+                  <input
+                    value={material}
+                    onChange={e => setMaterial(e.target.value)}
+                    placeholder="e.g. High-Fire Stoneware Ceramic"
+                    style={{ padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 4 }}
+                  />
+                </label>
+
+                <label style={{ fontSize: 12, fontWeight: 600, display: 'grid', gap: 4 }}>
+                  Place of Origin (Spec)
+                  <input
+                    value={origin}
+                    onChange={e => setOrigin(e.target.value)}
+                    placeholder="e.g. Jaipur Cluster, Rajasthan"
                     style={{ padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 4 }}
                   />
                 </label>

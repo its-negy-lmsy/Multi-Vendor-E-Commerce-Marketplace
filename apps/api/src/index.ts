@@ -29,7 +29,19 @@ async function start() {
     console.log(`⚡ Mode: ${config.NODE_ENV} | DB Mode: ${isMemory ? 'In-Memory (Zero-Config)' : 'External URI'}`);
     console.log(`======================================================\n`);
   });
+
+  server.on('error', (err) => {
+    console.error('[HTTP Server Error]:', err);
+  });
 }
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[Unhandled Rejection at]:', promise, 'reason:', reason);
+});
+
+process.on('uncaughtException', (error) => {
+  console.error('[Uncaught Exception]:', error);
+});
 
 start().catch(error => {
   console.error('startup_failed', error instanceof Error ? error.message : 'unknown');
@@ -45,3 +57,4 @@ async function shutdown() {
 
 process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);
+

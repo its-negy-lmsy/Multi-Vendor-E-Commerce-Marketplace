@@ -11,7 +11,7 @@ import { AuthModal } from './AuthModal';
 import { CartDrawer } from './CartDrawer';
 import { PincodeModal } from './PincodeModal';
 import { WishlistDrawer } from './WishlistDrawer';
-import { useCartQuery, useMeQuery } from '../api';
+import { useCartQuery, useMeQuery, useToggleWishlistMutation, useWishlistQuery } from '../api';
 
 export function App() {
   const [authOpen, setAuthOpen] = useState(false);
@@ -22,7 +22,14 @@ export function App() {
   const [deliveryPincode, setDeliveryPincode] = useState('110001');
   const [toastNotice, setToastNotice] = useState('');
 
-  // Wishlist persisted in localStorage
+  const navigate = useNavigate();
+  const { data: identity } = useMeQuery();
+  const isCustomer = identity?.user?.role === 'CUSTOMER';
+  const { data: cartData } = useCartQuery(undefined, { skip: !isCustomer });
+  const { data: serverWishlist } = useWishlistQuery(undefined, { skip: !isCustomer });
+  const [toggleServerWishlist] = useToggleWishlistMutation();
+
+  // Wishlist persisted in localStorage + synced with MongoDB
   const [wishlistIds, setWishlistIds] = useState<string[]>(() => {
     try {
       const stored = localStorage.getItem('amz_wishlist');
@@ -32,22 +39,34 @@ export function App() {
     }
   });
 
+  // When server wishlist loads, sync it
+  useEffect(() => {
+    if (serverWishlist?.productIds) {
+      setWishlistIds(serverWishlist.productIds);
+      try {
+        localStorage.setItem('amz_wishlist', JSON.stringify(serverWishlist.productIds));
+      } catch {}
+    }
+  }, [serverWishlist]);
+
   useEffect(() => {
     try {
       localStorage.setItem('amz_wishlist', JSON.stringify(wishlistIds));
     } catch {}
   }, [wishlistIds]);
 
-  const toggleWishlist = (productId: string) => {
+  const toggleWishlist = async (productId: string) => {
+    if (isCustomer) {
+      try {
+        const res = await toggleServerWishlist({ productId }).unwrap();
+        setWishlistIds(res.productIds);
+        return;
+      } catch {}
+    }
     setWishlistIds(prev =>
       prev.includes(productId) ? prev.filter(id => id !== productId) : [...prev, productId]
     );
   };
-
-  const navigate = useNavigate();
-  const { data: identity } = useMeQuery();
-  const isCustomer = identity?.user?.role === 'CUSTOMER';
-  const { data: cartData } = useCartQuery(undefined, { skip: !isCustomer });
 
   const bagCount = cartData?.items?.reduce((sum, item) => sum + item.quantity, 0) ?? 0;
 

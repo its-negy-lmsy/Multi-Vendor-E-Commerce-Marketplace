@@ -71,6 +71,7 @@ export type OrderItem = {
   fulfillmentStatus: 'UNFULFILLED' | 'PACKED' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED';
   trackingNumber?: string;
   courier?: string;
+  imageUrl?: string;
 };
 
 export type Order = {
@@ -160,7 +161,7 @@ const baseQuery: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError> =
 export const api = createApi({
   reducerPath: 'api',
   baseQuery,
-  tagTypes: ['Product', 'Identity', 'Cart', 'Address', 'Order', 'Vendor', 'Admin', 'Review', 'Coupon'],
+  tagTypes: ['Product', 'Identity', 'Cart', 'Address', 'Order', 'Vendor', 'Admin', 'Review', 'Coupon', 'Wishlist'],
   endpoints: builder => ({
     // Catalog & Discovery
     products: builder.query<ProductPage, { q?: string; page?: number; category?: string; minPrice?: number; maxPrice?: number; sort?: string; limit?: number }>({
@@ -226,6 +227,20 @@ export const api = createApi({
       query: body => ({ url: '/payments/mock/confirm', method: 'POST', body }),
       invalidatesTags: ['Order', 'Cart'],
     }),
+    cancelOrder: builder.mutation<{ success: boolean; orderId: string; status: string; paymentStatus: string }, string>({
+      query: id => ({ url: `/orders/${id}/cancel`, method: 'POST' }),
+      invalidatesTags: ['Order', 'Product'],
+    }),
+
+    // Wishlist Sync
+    wishlist: builder.query<{ productIds: string[] }, void>({
+      query: () => '/users/me/wishlist',
+      providesTags: ['Wishlist'],
+    }),
+    toggleWishlist: builder.mutation<{ productIds: string[]; added: boolean }, { productId: string }>({
+      query: body => ({ url: '/users/me/wishlist/toggle', method: 'POST', body }),
+      invalidatesTags: ['Wishlist'],
+    }),
 
     // Auth
     login: builder.mutation<AuthResponse, { email: string; password: string }>({
@@ -235,7 +250,7 @@ export const api = createApi({
         sessionStorage.setItem('fs01_access', accessToken);
         return response;
       },
-      invalidatesTags: ['Identity', 'Cart', 'Order'],
+      invalidatesTags: ['Identity', 'Cart', 'Order', 'Wishlist'],
     }),
     register: builder.mutation<AuthResponse, { name: string; email: string; password: string }>({
       query: body => ({ url: '/auth/register', method: 'POST', body }),
@@ -244,7 +259,7 @@ export const api = createApi({
         sessionStorage.setItem('fs01_access', accessToken);
         return response;
       },
-      invalidatesTags: ['Identity', 'Cart', 'Order'],
+      invalidatesTags: ['Identity', 'Cart', 'Order', 'Wishlist'],
     }),
     me: builder.query<{ user: User }, void>({
       query: () => '/auth/me',
@@ -256,7 +271,7 @@ export const api = createApi({
         accessToken = null;
         sessionStorage.removeItem('fs01_access');
       },
-      invalidatesTags: ['Identity', 'Cart', 'Order'],
+      invalidatesTags: ['Identity', 'Cart', 'Order', 'Wishlist'],
     }),
 
     // Vendor Studio
@@ -272,11 +287,17 @@ export const api = createApi({
       query: () => '/vendor/products',
       providesTags: ['Product'],
     }),
-    createVendorProduct: builder.mutation<{ item: Product }, { name: string; description: string; category: string; pricePaise: number; stock: number; imageUrl: string }>({
+    createVendorProduct: builder.mutation<
+      { item: Product },
+      { name: string; description: string; category: string; pricePaise: number; stock: number; imageUrl: string; mrpPaise?: number; badge?: string; specs?: Record<string, string> }
+    >({
       query: body => ({ url: '/vendor/products', method: 'POST', body }),
       invalidatesTags: ['Product'],
     }),
-    updateVendorProduct: builder.mutation<{ item: Product }, { id: string; name?: string; description?: string; category?: string; pricePaise?: number; stock?: number; imageUrl?: string }>({
+    updateVendorProduct: builder.mutation<
+      { item: Product },
+      { id: string; name?: string; description?: string; category?: string; pricePaise?: number; stock?: number; imageUrl?: string; mrpPaise?: number; badge?: string; specs?: Record<string, string> }
+    >({
       query: ({ id, ...body }) => ({ url: `/vendor/products/${id}`, method: 'PATCH', body }),
       invalidatesTags: ['Product'],
     }),
@@ -288,7 +309,10 @@ export const api = createApi({
       query: () => '/vendor/orders',
       providesTags: ['Order'],
     }),
-    updateFulfillment: builder.mutation<{ item: OrderItem; orderStatus: string }, { orderId: string; itemId: string; status: 'PACKED' | 'SHIPPED' | 'DELIVERED'; trackingNumber?: string; courier?: string }>({
+    updateFulfillment: builder.mutation<
+      { item: OrderItem; orderStatus: string },
+      { orderId: string; itemId: string; status: 'PACKED' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED'; trackingNumber?: string; courier?: string }
+    >({
       query: ({ orderId, itemId, ...body }) => ({ url: `/vendor/orders/${orderId}/items/${itemId}/fulfillment`, method: 'PATCH', body }),
       invalidatesTags: ['Order'],
     }),
@@ -318,6 +342,13 @@ export const api = createApi({
       query: () => '/admin/audit-logs',
       providesTags: ['Admin'],
     }),
+    createCoupon: builder.mutation<
+      { coupon: Coupon },
+      { code: string; description: string; discountType: 'PERCENTAGE' | 'FLAT'; discountValue: number; minOrderPaise?: number; maxDiscountPaise?: number; isActive?: boolean }
+    >({
+      query: body => ({ url: '/admin/coupons', method: 'POST', body }),
+      invalidatesTags: ['Coupon'],
+    }),
   }),
 });
 
@@ -339,6 +370,9 @@ export const {
   useAddAddressMutation,
   useCheckoutMutation,
   useConfirmMockPaymentMutation,
+  useCancelOrderMutation,
+  useWishlistQuery,
+  useToggleWishlistMutation,
   useOrdersQuery,
   useOrderQuery,
   useVendorProfileQuery,
@@ -355,4 +389,5 @@ export const {
   useModerateProductMutation,
   useAdminAnalyticsQuery,
   useAuditLogsQuery,
+  useCreateCouponMutation,
 } = api;

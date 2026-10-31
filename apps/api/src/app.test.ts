@@ -31,4 +31,11 @@ describe('foundation API', () => {
     expect(response.status).toBe(401);
   });
 
+  it('accepts access token passed via query parameter (token=...) for direct link downloads', async () => {
+    const customerToken = signAccessToken({ id: '507f1f77bcf86cd799439011', name: 'Test Customer', email: 'customer@example.test', role: 'CUSTOMER' });
+    const response = await request(app).get(`/api/v1/auth/me?token=${customerToken}`);
+    expect(response.status).toBe(200);
+    expect(response.body.user.email).toBe('customer@example.test');
+  });
+
 });

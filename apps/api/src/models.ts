@@ -85,6 +85,7 @@ const orderItemSchema = new Schema({
   fulfillmentStatus: { type: String, enum: ['UNFULFILLED', 'PACKED', 'SHIPPED', 'DELIVERED', 'CANCELLED'], default: 'UNFULFILLED' },
   trackingNumber: { type: String, default: '' },
   courier: { type: String, default: '' },
+  imageUrl: { type: String, default: '' },
 }, { _id: true, strict: 'throw' });
 const orderSchema = new Schema({
   customerId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
@@ -171,3 +172,9 @@ export const Payment = mongoose.model('Payment', paymentSchema);
 export const OutboxEvent = mongoose.model('OutboxEvent', outboxSchema);
 export const Review = mongoose.model('Review', reviewSchema);
 export const Coupon = mongoose.model('Coupon', couponSchema);
+
+const wishlistSchema = new Schema({
+  userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, unique: true, index: true },
+  productIds: [{ type: Schema.Types.ObjectId, ref: 'Product' }],
+}, { timestamps: true, strict: 'throw' });
+export const Wishlist = mongoose.model('Wishlist', wishlistSchema);

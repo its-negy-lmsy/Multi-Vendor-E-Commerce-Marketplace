@@ -4,15 +4,18 @@ import {
   ArrowLeft,
   BarChart3,
   Package,
+  Plus,
   Shield,
   Tag,
   Users,
+  X,
 } from 'lucide-react';
 import {
   useAdminAnalyticsQuery,
   useAdminVendorsQuery,
   useAuditLogsQuery,
   useCouponsQuery,
+  useCreateCouponMutation,
   useMeQuery,
   useModerateProductMutation,
   useProductsQuery,
@@ -32,9 +35,47 @@ export const AdminDashboard: React.FC = () => {
 
   const [updateVendorStatus] = useUpdateVendorStatusMutation();
   const [moderateProduct] = useModerateProductMutation();
+  const [createCoupon, { isLoading: isCreatingCoupon }] = useCreateCouponMutation();
 
   const [activeTab, setActiveTab] = useState<'analytics' | 'vendors' | 'products' | 'coupons' | 'audit'>('analytics');
   const [notice, setNotice] = useState('');
+  const [showCouponModal, setShowCouponModal] = useState(false);
+
+  // Coupon form state
+  const [couponCode, setCouponCode] = useState('');
+  const [couponDesc, setCouponDesc] = useState('');
+  const [discountType, setDiscountType] = useState<'PERCENTAGE' | 'FLAT'>('PERCENTAGE');
+  const [discountVal, setDiscountVal] = useState('15');
+  const [minOrderInr, setMinOrderInr] = useState('1000');
+  const [maxDiscountInr, setMaxDiscountInr] = useState('500');
+
+  const handleCreateCoupon = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const discountValue = discountType === 'PERCENTAGE'
+        ? parseInt(discountVal, 10)
+        : Math.round(parseFloat(discountVal) * 100);
+      const minOrderPaise = minOrderInr ? Math.round(parseFloat(minOrderInr) * 100) : 0;
+      const maxDiscountPaise = maxDiscountInr ? Math.round(parseFloat(maxDiscountInr) * 100) : 0;
+
+      await createCoupon({
+        code: couponCode.trim().toUpperCase(),
+        description: couponDesc.trim(),
+        discountType,
+        discountValue,
+        minOrderPaise,
+        maxDiscountPaise,
+        isActive: true,
+      }).unwrap();
+
+      setShowCouponModal(false);
+      setCouponCode('');
+      setCouponDesc('');
+      setNotice(`Promotional coupon ${couponCode.toUpperCase()} successfully issued!`);
+    } catch (err: any) {
+      setNotice(err?.data?.error?.message || 'Could not create coupon.');
+    }
+  };
 
   if (!isAdmin) {
     return (
@@ -340,12 +381,36 @@ export const AdminDashboard: React.FC = () => {
       {/* Tab 4: Coupons */}
       {activeTab === 'coupons' && (
         <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 8, padding: 20 }}>
-          <h3 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 16px' }}>Active Promotional Codes</h3>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <div>
+              <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Active Promotional Codes</h3>
+              <p style={{ fontSize: 12, color: '#6b7280', margin: '2px 0 0' }}>Manage sitewide discounts, festival offers, and buyer incentives.</p>
+            </div>
+            <button
+              onClick={() => setShowCouponModal(true)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '8px 16px',
+                background: '#ffd814',
+                border: '1px solid #fcd200',
+                borderRadius: 6,
+                fontSize: 12,
+                fontWeight: 700,
+                color: '#0f1111',
+                cursor: 'pointer',
+              }}
+            >
+              <Plus size={14} /> Create New Coupon
+            </button>
+          </div>
+
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
             {couponsData?.items.map(coupon => (
-              <div key={coupon._id} style={{ border: '1px dashed #50684d', borderRadius: 8, padding: 16, background: '#fafbf9' }}>
+              <div key={coupon._id} style={{ border: '1px dashed #febd69', borderRadius: 8, padding: 16, background: '#fafbf9' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <code style={{ fontSize: 16, fontWeight: 800, color: '#2f4432', letterSpacing: '0.05em' }}>{coupon.code}</code>
+                  <code style={{ fontSize: 16, fontWeight: 800, color: '#0f1111', letterSpacing: '0.05em' }}>{coupon.code}</code>
                   <span style={{ fontSize: 10, fontWeight: 700, background: '#dcfce7', color: '#15803d', padding: '2px 6px', borderRadius: 4 }}>
                     {coupon.discountType === 'PERCENTAGE' ? `${coupon.discountValue}% OFF` : `₹${coupon.discountValue / 100} OFF`}
                   </span>
@@ -353,10 +418,115 @@ export const AdminDashboard: React.FC = () => {
                 <p style={{ fontSize: 12, color: '#4b5563', margin: '8px 0 4px' }}>{coupon.description}</p>
                 <div style={{ fontSize: 11, color: '#6b7280' }}>
                   Min Order: {formatPrice(coupon.minOrderPaise)}
+                  {coupon.maxDiscountPaise ? ` · Cap: ${formatPrice(coupon.maxDiscountPaise)}` : ''}
                 </div>
               </div>
             ))}
           </div>
+
+          {/* Create Coupon Modal */}
+          {showCouponModal && (
+            <div className="amz-modal-backdrop" onClick={() => setShowCouponModal(false)}>
+              <div className="amz-checkout-modal" style={{ maxWidth: 460, padding: 24 }} onClick={e => e.stopPropagation()}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                  <h3 style={{ fontSize: 18, fontWeight: 700 }}>Issue New Coupon Code</h3>
+                  <button onClick={() => setShowCouponModal(false)}><X size={18} /></button>
+                </div>
+
+                <form onSubmit={handleCreateCoupon} style={{ display: 'grid', gap: 14 }}>
+                  <label style={{ fontSize: 12, fontWeight: 600, display: 'grid', gap: 4 }}>
+                    Coupon Code (Uppercase)
+                    <input
+                      required
+                      value={couponCode}
+                      onChange={e => setCouponCode(e.target.value.toUpperCase())}
+                      placeholder="e.g. FESTIVAL20"
+                      style={{ padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 4 }}
+                    />
+                  </label>
+
+                  <label style={{ fontSize: 12, fontWeight: 600, display: 'grid', gap: 4 }}>
+                    Description
+                    <input
+                      required
+                      value={couponDesc}
+                      onChange={e => setCouponDesc(e.target.value)}
+                      placeholder="e.g. Great Artisan Festival Special 20% Discount"
+                      style={{ padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 4 }}
+                    />
+                  </label>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    <label style={{ fontSize: 12, fontWeight: 600, display: 'grid', gap: 4 }}>
+                      Discount Type
+                      <select
+                        value={discountType}
+                        onChange={e => setDiscountType(e.target.value as any)}
+                        style={{ padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 4, background: '#fff' }}
+                      >
+                        <option value="PERCENTAGE">Percentage (%)</option>
+                        <option value="FLAT">Flat Rupee Off (₹)</option>
+                      </select>
+                    </label>
+
+                    <label style={{ fontSize: 12, fontWeight: 600, display: 'grid', gap: 4 }}>
+                      Discount Value {discountType === 'PERCENTAGE' ? '(%)' : '(₹)'}
+                      <input
+                        required
+                        type="number"
+                        min="1"
+                        value={discountVal}
+                        onChange={e => setDiscountVal(e.target.value)}
+                        style={{ padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 4 }}
+                      />
+                    </label>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    <label style={{ fontSize: 12, fontWeight: 600, display: 'grid', gap: 4 }}>
+                      Minimum Order (₹)
+                      <input
+                        type="number"
+                        min="0"
+                        value={minOrderInr}
+                        onChange={e => setMinOrderInr(e.target.value)}
+                        style={{ padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 4 }}
+                      />
+                    </label>
+
+                    <label style={{ fontSize: 12, fontWeight: 600, display: 'grid', gap: 4 }}>
+                      Max Discount Cap (₹)
+                      <input
+                        type="number"
+                        min="0"
+                        value={maxDiscountInr}
+                        onChange={e => setMaxDiscountInr(e.target.value)}
+                        style={{ padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 4 }}
+                      />
+                    </label>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 10 }}>
+                    <button
+                      type="button"
+                      onClick={() => setShowCouponModal(false)}
+                      style={{ padding: '8px 16px', border: '1px solid #d1d5db', borderRadius: 4, background: '#fff', fontSize: 12, fontWeight: 600 }}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isCreatingCoupon}
+                      className="amz-btn-cart"
+                      style={{ width: 'auto', padding: '8px 20px', fontSize: 12 }}
+                    >
+                      {isCreatingCoupon ? 'Creating…' : 'Issue Coupon'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

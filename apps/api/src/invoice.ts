@@ -47,7 +47,7 @@ export function renderInvoiceHtml(invoice: InvoiceData): string {
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Tax Invoice - ${invoice.invoiceNumber}</title>
+  <title>TAX INVOICE - ${invoice.invoiceNumber}</title>
   <style>
     @page { size: A4; margin: 18mm 15mm; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1f2937; margin: 0; padding: 24px; font-size: 13px; line-height: 1.5; background: #fff; }
@@ -87,7 +87,7 @@ export function renderInvoiceHtml(invoice: InvoiceData): string {
         <div style="color: #9ca3af; font-size: 11px;">Platform GSTIN: 07AAACH1234D1Z2</div>
       </div>
       <div class="invoice-badge">
-        <h1>Tax Invoice</h1>
+        <h1>TAX INVOICE</h1>
         <div class="badge-sub">Invoice #: <strong>${invoice.invoiceNumber}</strong></div>
         <div class="badge-sub">Date: ${dateStr}</div>
         <div class="badge-sub">Payment Ref: <code>${invoice.paymentReference}</code></div>

@@ -14,7 +14,7 @@ export function makeRefreshToken(): string { return randomBytes(48).toString('ba
 export function hashToken(value: string): string { return createHash('sha256').update(value).digest('hex'); }
 
 export function requireAuth(req: Request, res: Response, next: NextFunction): void {
-  const token = req.headers.authorization?.replace(/^Bearer\s+/i, '');
+  const token = req.headers.authorization?.replace(/^Bearer\s+/i, '') || (typeof req.query.token === 'string' ? req.query.token : undefined);
   if (!token) { res.status(401).json({ error: { code: 'UNAUTHENTICATED', message: 'Sign in to continue' } }); return; }
   try {
     const claims = jwt.verify(token, config.JWT_ACCESS_SECRET) as jwt.JwtPayload;
