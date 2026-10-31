@@ -205,8 +205,13 @@ async function run() {
   const vendorToken = vendorLogin.json.accessToken;
   const vendorHeaders = { Authorization: `Bearer ${vendorToken}` };
 
-  // Get a product owned by maker
-  const makerProduct = products.find(p => p.name.includes('Ceramic Pour-Over')) || testProduct;
+  // Get a product owned by maker that is published and in stock
+  const vProductsRes = await request('/vendor/products', { headers: vendorHeaders });
+  const makerProduct = (vProductsRes.json?.items || []).find(p => p.status === 'PUBLISHED' && p.stock >= 2);
+  if (!makerProduct) {
+    throw new Error(`No published maker product with stock >= 2 found: ${JSON.stringify(vProductsRes.json)}`);
+  }
+  console.log(`✓ Selected maker product "${makerProduct.name}" (Stock: ${makerProduct.stock})`);
 
   // Place another customer order
   await request('/cart', {
@@ -222,7 +227,10 @@ async function run() {
       items: [{ productId: makerProduct._id, quantity: 2 }],
     },
   });
-  const order2 = order2Res.json.order;
+  const order2 = order2Res.json?.order;
+  if (!order2) {
+    throw new Error(`Order2 checkout failed: ${order2Res.status} ${order2Res.text}`);
+  }
   await request('/payments/mock/confirm', {
     method: 'POST',
     headers: customerHeaders,
