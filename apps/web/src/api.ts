@@ -10,6 +10,9 @@ export type Product = {
   category: string;
   vendorId?: string;
   pricePaise: number;
+  mrpPaise?: number;
+  badge?: string;
+  specs?: Record<string, string>;
   stock: number;
   ratingAverage: number;
   ratingCount: number;
@@ -160,7 +163,7 @@ export const api = createApi({
   tagTypes: ['Product', 'Identity', 'Cart', 'Address', 'Order', 'Vendor', 'Admin', 'Review', 'Coupon'],
   endpoints: builder => ({
     // Catalog & Discovery
-    products: builder.query<ProductPage, { q?: string; page?: number; category?: string; minPrice?: number; maxPrice?: number; sort?: string }>({
+    products: builder.query<ProductPage, { q?: string; page?: number; category?: string; minPrice?: number; maxPrice?: number; sort?: string; limit?: number }>({
       query: params => ({ url: '/products', params }),
       providesTags: ['Product'],
     }),
@@ -218,6 +221,10 @@ export const api = createApi({
     order: builder.query<{ order: Order }, string>({
       query: id => `/orders/${id}`,
       providesTags: (_res, _err, id) => [{ type: 'Order', id }],
+    }),
+    confirmMockPayment: builder.mutation<{ success: boolean; orderId: string; status: string; paymentStatus: string }, { orderId: string }>({
+      query: body => ({ url: '/payments/mock/confirm', method: 'POST', body }),
+      invalidatesTags: ['Order', 'Cart'],
     }),
 
     // Auth
@@ -331,6 +338,7 @@ export const {
   useAddressesQuery,
   useAddAddressMutation,
   useCheckoutMutation,
+  useConfirmMockPaymentMutation,
   useOrdersQuery,
   useOrderQuery,
   useVendorProfileQuery,

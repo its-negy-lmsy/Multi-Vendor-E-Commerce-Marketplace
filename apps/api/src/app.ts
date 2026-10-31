@@ -18,7 +18,7 @@ import { hashToken, makeRefreshToken, refreshCookieOptions, requireAuth, require
 import { calculateTotals } from './commerce.js';
 import { clearCartCache, readCartCache, writeCartCache } from './cache.js';
 import { processOutboxBatch, queueProductIndex, searchElasticProducts } from './search.js';
-import { createPaymentAttempt, verifyMockPaymentEvent, verifyRazorpayWebhook } from './payments.js';
+import { createPaymentAttempt, signMockPaymentEvent, verifyMockPaymentEvent, verifyRazorpayWebhook } from './payments.js';
 import { saveBase64Image } from './storage.js';
 import { renderInvoiceHtml } from './invoice.js';
 
@@ -153,7 +153,17 @@ app.get('/api/v1/products/:id', async (req, res, next) => {
 });
 
 const applicationSchema = z.object({ shopName: z.string().trim().min(2).max(100), description: z.string().trim().min(20).max(2000) }).strict();
-const productInputSchema = z.object({ name: z.string().trim().min(2).max(160), description: z.string().trim().min(20).max(6000), category: z.string().trim().min(2).max(80), pricePaise: z.number().int().safe().min(1), stock: z.number().int().safe().min(0), imageUrl: z.url().max(2048).optional() }).strict();
+const productInputSchema = z.object({
+  name: z.string().trim().min(2).max(160),
+  description: z.string().trim().min(20).max(6000),
+  category: z.string().trim().min(2).max(80),
+  pricePaise: z.number().int().safe().min(1),
+  mrpPaise: z.number().int().safe().min(1).optional(),
+  badge: z.string().trim().max(50).optional(),
+  specs: z.record(z.string(), z.string()).optional(),
+  stock: z.number().int().safe().min(0),
+  imageUrl: z.string().max(2048).optional(),
+}).strict();
 const slugFor = (value: string) => value.normalize('NFKD').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '').slice(0, 70);
 
 app.post('/api/v1/vendors/application', requireAuth, requireRoles('CUSTOMER'), async (req, res, next) => {
@@ -411,6 +421,47 @@ app.post('/api/v1/payments/mock/webhook', async (req, res, next) => {
       await Promise.all(order.items.map(item => Product.updateOne({ _id: item.productId }, { $inc: { stock: item.quantity } })));
     }
     res.json({ received: true, orderId: String(claimedOrder._id), status: claimedOrder.status });
+  } catch (error) { next(error); }
+});
+
+app.post('/api/v1/payments/mock/confirm', requireAuth, requireRoles('CUSTOMER'), async (req, res, next) => {
+  try {
+    if (config.NODE_ENV === 'production' || config.PAYMENT_PROVIDER !== 'mock') {
+      res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Not found' } });
+      return;
+    }
+    const input = z.object({ orderId: z.string().refine(mongoose.isValidObjectId) }).parse(req.body);
+    const order = await Order.findOne({ _id: input.orderId, customerId: req.identity!.id, status: 'PAYMENT_PENDING' });
+    if (!order) {
+      res.status(404).json({ error: { code: 'ORDER_NOT_FOUND', message: 'Pending order not found' } });
+      return;
+    }
+    const eventId = `evt_mock_${randomUUID()}`;
+    await Payment.create({
+      orderId: order._id,
+      provider: 'mock',
+      providerReference: order.paymentReference,
+      eventId,
+      status: 'PAID',
+      amountPaise: order.totalPaise,
+      signatureVerifiedAt: new Date(),
+    });
+    order.status = 'PLACED';
+    order.paymentStatus = 'PAID';
+    order.paymentEventId = eventId;
+    await order.save();
+
+    await Promise.all(order.items.map(item =>
+      VendorLedgerEntry.updateOne(
+        { eventKey: `${eventId}:${item._id}` },
+        { $setOnInsert: { vendorId: item.vendorId, orderId: order._id, orderItemId: item._id, eventKey: `${eventId}:${item._id}`, amountPaise: item.vendorPayablePaise, type: 'SALE_CREDIT', status: 'PAYABLE' } },
+        { upsert: true }
+      )
+    ));
+    await Cart.updateOne({ userId: order.customerId }, { $set: { items: [] } });
+    await clearCartCache(String(order.customerId));
+
+    res.json({ success: true, orderId: String(order._id), status: order.status, paymentStatus: order.paymentStatus });
   } catch (error) { next(error); }
 });
 

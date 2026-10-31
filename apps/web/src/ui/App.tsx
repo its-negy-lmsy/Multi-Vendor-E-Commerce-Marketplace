@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Routes, Route, useNavigate } from 'react-router-dom';
 import { Check, X } from 'lucide-react';
 import { Navbar } from './Navbar';
@@ -9,13 +9,40 @@ import { VendorDashboard } from './VendorDashboard';
 import { AdminDashboard } from './AdminDashboard';
 import { AuthModal } from './AuthModal';
 import { CartDrawer } from './CartDrawer';
+import { PincodeModal } from './PincodeModal';
+import { WishlistDrawer } from './WishlistDrawer';
 import { useCartQuery, useMeQuery } from '../api';
 
 export function App() {
   const [authOpen, setAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const [cartOpen, setCartOpen] = useState(false);
+  const [pinModalOpen, setPinModalOpen] = useState(false);
+  const [wishlistOpen, setWishlistOpen] = useState(false);
+  const [deliveryPincode, setDeliveryPincode] = useState('110001');
   const [toastNotice, setToastNotice] = useState('');
+
+  // Wishlist persisted in localStorage
+  const [wishlistIds, setWishlistIds] = useState<string[]>(() => {
+    try {
+      const stored = localStorage.getItem('amz_wishlist');
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('amz_wishlist', JSON.stringify(wishlistIds));
+    } catch {}
+  }, [wishlistIds]);
+
+  const toggleWishlist = (productId: string) => {
+    setWishlistIds(prev =>
+      prev.includes(productId) ? prev.filter(id => id !== productId) : [...prev, productId]
+    );
+  };
 
   const navigate = useNavigate();
   const { data: identity } = useMeQuery();
@@ -30,7 +57,7 @@ export function App() {
   };
 
   const handleOrderSuccess = (orderId: string) => {
-    setToastNotice(`Order placed successfully! Reference: #${orderId.slice(-8).toUpperCase()}`);
+    setToastNotice(`🎉 Order placed successfully! Reference: #${orderId.slice(-8).toUpperCase()}`);
     navigate('/orders');
   };
 
@@ -38,8 +65,12 @@ export function App() {
     <div className="site-shell">
       <Navbar
         cartCount={bagCount}
+        deliveryPincode={deliveryPincode}
         onOpenCart={() => setCartOpen(true)}
         onOpenAuth={handleOpenAuth}
+        onOpenPinModal={() => setPinModalOpen(true)}
+        onOpenWishlist={() => setWishlistOpen(true)}
+        wishlistCount={wishlistIds.length}
       />
 
       <main id="top">
@@ -51,6 +82,9 @@ export function App() {
                 onOpenCart={() => setCartOpen(true)}
                 onOpenAuth={() => handleOpenAuth('login')}
                 onShowNotice={msg => setToastNotice(msg)}
+                onToggleWishlist={toggleWishlist}
+                wishlistIds={wishlistIds}
+                deliveryPincode={deliveryPincode}
               />
             }
           />
@@ -61,6 +95,10 @@ export function App() {
                 onOpenCart={() => setCartOpen(true)}
                 onOpenAuth={() => handleOpenAuth('login')}
                 onShowNotice={msg => setToastNotice(msg)}
+                deliveryPincode={deliveryPincode}
+                onOpenPinModal={() => setPinModalOpen(true)}
+                onToggleWishlist={toggleWishlist}
+                wishlistIds={wishlistIds}
               />
             }
           />
@@ -72,8 +110,8 @@ export function App() {
 
       {/* Global Toast */}
       {toastNotice && (
-        <div className="toast" role="status">
-          <Check size={16} />
+        <div className="toast" role="status" style={{ background: '#131921', color: '#fff', borderLeft: '4px solid #febd69' }}>
+          <Check size={16} color="#febd69" />
           <span>{toastNotice}</span>
           <button onClick={() => setToastNotice('')} aria-label="Dismiss">
             <X size={14} />
@@ -81,7 +119,7 @@ export function App() {
         </div>
       )}
 
-      {/* Modals */}
+      {/* Modals & Drawers */}
       <AuthModal
         isOpen={authOpen}
         defaultMode={authMode}
@@ -94,6 +132,27 @@ export function App() {
         onClose={() => setCartOpen(false)}
         onOpenAuth={() => handleOpenAuth('login')}
         onOrderSuccess={handleOrderSuccess}
+        deliveryPincode={deliveryPincode}
+      />
+
+      <PincodeModal
+        isOpen={pinModalOpen}
+        currentPin={deliveryPincode}
+        onClose={() => setPinModalOpen(false)}
+        onSelectPin={(pin, city) => {
+          setDeliveryPincode(pin);
+          setToastNotice(`Delivery location set to ${city} (${pin}).`);
+        }}
+      />
+
+      <WishlistDrawer
+        isOpen={wishlistOpen}
+        onClose={() => setWishlistOpen(false)}
+        wishlistIds={wishlistIds}
+        onRemove={toggleWishlist}
+        onOpenCart={() => setCartOpen(true)}
+        onOpenAuth={() => handleOpenAuth('login')}
+        onShowNotice={msg => setToastNotice(msg)}
       />
     </div>
   );

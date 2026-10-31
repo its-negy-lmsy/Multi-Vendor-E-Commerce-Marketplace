@@ -1,19 +1,53 @@
 import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Check, Shield, Star, Store, Truck } from 'lucide-react';
-import { useAddReviewMutation, useCartQuery, useMeQuery, useProductQuery, useReviewsQuery, useUpdateCartMutation } from '../api';
+import {
+  ArrowLeft,
+  ChevronRight,
+  Heart,
+  Lock,
+  MapPin,
+  RotateCcw,
+  ShieldCheck,
+  ShoppingCart,
+  Star,
+  ThumbsUp,
+  Truck,
+  Zap,
+} from 'lucide-react';
+import {
+  useAddReviewMutation,
+  useCartQuery,
+  useMeQuery,
+  useProductQuery,
+  useReviewsQuery,
+  useUpdateCartMutation,
+} from '../api';
 import { formatPrice } from '../utils';
 
 interface ProductDetailProps {
   onOpenCart: () => void;
   onOpenAuth: () => void;
   onShowNotice: (msg: string) => void;
+  deliveryPincode?: string;
+  onOpenPinModal?: () => void;
+  onToggleWishlist?: (productId: string) => void;
+  wishlistIds?: string[];
 }
 
-export const ProductDetail: React.FC<ProductDetailProps> = ({ onOpenCart, onOpenAuth, onShowNotice }) => {
+export const ProductDetail: React.FC<ProductDetailProps> = ({
+  onOpenCart,
+  onOpenAuth,
+  onShowNotice,
+  deliveryPincode = '110001',
+  onOpenPinModal,
+  onToggleWishlist,
+  wishlistIds = [],
+}) => {
   const { id } = useParams<{ id: string }>();
+
   const { data: productData, isLoading, isError } = useProductQuery(id || '');
   const { data: reviewsData } = useReviewsQuery(id || '', { skip: !id });
+
   const { data: identity } = useMeQuery();
   const isCustomer = identity?.user?.role === 'CUSTOMER';
   const { data: cartData } = useCartQuery(undefined, { skip: !isCustomer });
@@ -21,26 +55,55 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({ onOpenCart, onOpen
   const [addReview, addReviewState] = useAddReviewMutation();
 
   const [quantity, setQuantity] = useState(1);
+  const [selectedThumb, setSelectedThumb] = useState(0);
+  const [isCouponClipped, setIsCouponClipped] = useState(false);
+  const [helpfulVotes, setHelpfulVotes] = useState<Record<string, number>>({});
+
+  // Review Modal State
+  const [showReviewModal, setShowReviewModal] = useState(false);
   const [ratingInput, setRatingInput] = useState(5);
   const [headline, setHeadline] = useState('');
   const [comment, setComment] = useState('');
   const [reviewMsg, setReviewMsg] = useState('');
 
+  // Q&A State
+  const [qaSearch, setQaSearch] = useState('');
+
   if (isLoading) {
-    return <div className="loading-state" style={{ padding: '80px 20px', textAlign: 'center' }}>Gathering product details…</div>;
+    return (
+      <div style={{ maxWidth: 1200, margin: '80px auto', textAlign: 'center', padding: 20 }}>
+        <h2>Loading Amazon Artisan Product Details…</h2>
+      </div>
+    );
   }
 
   if (isError || !productData?.item) {
     return (
-      <div className="empty-state" style={{ padding: '80px 20px', textAlign: 'center' }}>
-        <h2>Product not found</h2>
-        <p style={{ margin: '8px 0 20px', color: '#6b7280' }}>The item you are searching for may have been archived or removed.</p>
-        <Link to="/" className="primary-button"><ArrowLeft size={16} /> Return to Storefront</Link>
+      <div style={{ maxWidth: 700, margin: '80px auto', textAlign: 'center', background: '#fff', padding: 40, borderRadius: 8 }}>
+        <h2>Looking for something?</h2>
+        <p style={{ margin: '12px 0 24px', color: '#565959' }}>
+          We couldn't find the product matching that address. The item might have been archived or removed by its maker.
+        </p>
+        <Link to="/" className="amz-btn-cart" style={{ display: 'inline-flex', width: 'auto', padding: '10px 24px' }}>
+          <ArrowLeft size={16} /> Return to Marketplace Storefront
+        </Link>
       </div>
     );
   }
 
   const product = productData.item;
+  const reviews = reviewsData?.items ?? [];
+  const isSaved = wishlistIds.includes(product._id);
+
+  const mrp = product.mrpPaise || Math.round(product.pricePaise * 1.35);
+  const discountPct = Math.round(((mrp - product.pricePaise) / mrp) * 100);
+
+  // Gallery Images
+  const galleryImages = [
+    product.imageUrl,
+    'https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=800&q=80',
+  ];
 
   const handleAddToCart = async () => {
     if (!isCustomer) {
@@ -56,10 +119,30 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({ onOpenCart, onOpen
     }
     try {
       await updateCart({ items }).unwrap();
-      onShowNotice(`Added ${quantity} × ${product.name} to your bag.`);
+      onShowNotice(`Added ${quantity} × "${product.name}" to your Cart.`);
       onOpenCart();
     } catch {
-      onShowNotice('Could not add to bag. Check available stock.');
+      onShowNotice('Could not add to cart. Check available stock.');
+    }
+  };
+
+  const handleBuyNow = async () => {
+    if (!isCustomer) {
+      onOpenAuth();
+      return;
+    }
+    const items = (cartData?.items ?? []).map(i => ({ productId: i.product._id, quantity: i.quantity }));
+    const match = items.find(i => i.productId === product._id);
+    if (match) {
+      match.quantity = Math.min(20, match.quantity + quantity);
+    } else {
+      items.push({ productId: product._id, quantity });
+    }
+    try {
+      await updateCart({ items }).unwrap();
+      onOpenCart();
+    } catch {
+      onShowNotice('Could not start checkout.');
     }
   };
 
@@ -77,229 +160,641 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({ onOpenCart, onOpen
         headline,
         comment,
       }).unwrap();
+      setShowReviewModal(false);
       setHeadline('');
       setComment('');
-      setReviewMsg('Thank you! Your verified review has been published.');
+      onShowNotice('Thank you! Your verified review has been published.');
     } catch (err: any) {
       setReviewMsg(err?.data?.error?.message || 'Failed to submit review.');
     }
   };
 
+  const handleVoteHelpful = (reviewId: string) => {
+    setHelpfulVotes(prev => ({ ...prev, [reviewId]: (prev[reviewId] || 0) + 1 }));
+    onShowNotice('Thank you for your feedback.');
+  };
+
+  // Sample FAQs
+  const faqs = [
+    {
+      q: 'Is this item handcrafted or machine manufactured?',
+      a: 'This item is 100% handcrafted by verified artisan makers using traditional slow-craft methods and responsibly sourced natural materials.',
+    },
+    {
+      q: 'How long will delivery take to my pincode?',
+      a: `Standard express delivery takes 24 to 48 hours for metro locations (including PIN ${deliveryPincode}). Handcrafted orders are packaged with eco-friendly molded pulp buffers.`,
+    },
+    {
+      q: 'What is the return and replacement policy?',
+      a: 'We offer an A-to-Z 7-day hassle-free replacement guarantee. If your piece arrives damaged or has any artisanal defect, we dispatch an immediate replacement or full refund.',
+    },
+    {
+      q: 'Does it come with an official GST Tax Invoice?',
+      a: 'Yes, an official GST tax invoice with the maker’s registration and platform details is automatically generated upon checkout and downloadable anytime from Your Orders.',
+    },
+  ];
+
+  const filteredFaqs = faqs.filter(f =>
+    f.q.toLowerCase().includes(qaSearch.toLowerCase()) || f.a.toLowerCase().includes(qaSearch.toLowerCase())
+  );
+
   return (
-    <div style={{ maxWidth: 1200, margin: '0 auto', padding: '30px 24px 80px' }}>
-      <div style={{ marginBottom: 20 }}>
-        <Link to="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#6b7280' }}>
-          <ArrowLeft size={14} /> Back to all good things
-        </Link>
-      </div>
+    <div className="amz-pdp-wrap">
+      {/* 1. Amazon Breadcrumbs */}
+      <nav className="amz-breadcrumbs" aria-label="Breadcrumb">
+        <Link to="/">Home</Link> <ChevronRight size={12} />
+        <Link to={`/?cat=${encodeURIComponent(product.category)}`}>{product.category}</Link> <ChevronRight size={12} />
+        <span style={{ color: '#0f1111', fontWeight: 600 }}>{product.name}</span>
+      </nav>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 48, alignItems: 'start' }}>
-        {/* Gallery */}
-        <div style={{ background: '#f5f4ef', borderRadius: 8, overflow: 'hidden', border: '1px solid #e7e5dc' }}>
-          <img
-            src={product.imageUrl}
-            alt={product.name}
-            style={{ width: '100%', height: 520, objectFit: 'cover', display: 'block' }}
-          />
-        </div>
-
-        {/* Info Column */}
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#50684d', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-            <span>{product.category}</span>
-            <span>·</span>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Store size={13} /> Artisan Studio</span>
+      {/* 2. Main 3-Column PDP Grid */}
+      <div className="amz-pdp-grid">
+        {/* Column 1: Image Gallery */}
+        <div className="amz-pdp-gallery">
+          <div className="amz-pdp-thumbs">
+            {galleryImages.map((img, idx) => (
+              <div
+                key={idx}
+                className={`amz-pdp-thumb ${idx === selectedThumb ? 'active' : ''}`}
+                onMouseEnter={() => setSelectedThumb(idx)}
+                onClick={() => setSelectedThumb(idx)}
+              >
+                <img src={img} alt={`${product.name} view ${idx + 1}`} />
+              </div>
+            ))}
           </div>
 
-          <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 36, fontWeight: 500, margin: '12px 0 10px', color: '#1f2937' }}>
-            {product.name}
-          </h1>
+          <div className="amz-pdp-main-img">
+            <img src={galleryImages[selectedThumb] || product.imageUrl} alt={product.name} />
+          </div>
+        </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#b48a3e', fontSize: 14, fontWeight: 600 }}>
-              <Star size={16} fill="currentColor" />
-              <span>{product.ratingAverage.toFixed(1)}</span>
+        {/* Column 2: Center Product Details */}
+        <div className="amz-pdp-center">
+          <Link to="/" className="amz-pdp-brand">
+            Brand: Artisan Studio Partners | Visit the Store
+          </Link>
+
+          <h1 className="amz-pdp-title">{product.name}</h1>
+
+          {/* Ratings & Q&A link row */}
+          <div className="amz-pdp-ratings-line">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <span style={{ fontWeight: 700, color: '#0f1111' }}>{product.ratingAverage.toFixed(1)}</span>
+              <div className="amz-stars">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Star
+                    key={i}
+                    size={14}
+                    fill={i < Math.floor(product.ratingAverage) ? 'currentColor' : 'none'}
+                    stroke="currentColor"
+                  />
+                ))}
+              </div>
             </div>
-            <span style={{ color: '#9ca3af' }}>·</span>
-            <span style={{ color: '#6b7280', fontSize: 13 }}>{product.ratingCount} Customer Reviews</span>
-            <span style={{ color: '#9ca3af' }}>·</span>
-            <span style={{ color: product.stock > 0 ? '#16a34a' : '#dc2626', fontSize: 13, fontWeight: 600 }}>
-              {product.stock > 0 ? `In Stock (${product.stock} available)` : 'Out of Stock'}
+            <a href="#reviews" style={{ fontSize: 13, color: '#007185' }}>
+              {product.ratingCount} ratings
+            </a>
+            <span style={{ color: '#ccc' }}>|</span>
+            <a href="#qa" style={{ fontSize: 13, color: '#007185' }}>
+              14 answered questions
+            </a>
+          </div>
+
+          {/* Amazon's Choice Tag */}
+          <div style={{ marginBottom: 14 }}>
+            <span className="amz-badge-choice" style={{ position: 'static', display: 'inline-block' }}>
+              Amazon's <span style={{ color: '#ff9900' }}>Choice</span>
+            </span>
+            <span style={{ fontSize: 12, color: '#565959', marginLeft: 8 }}>
+              for "{product.category}"
             </span>
           </div>
 
-          <div style={{ fontSize: 28, fontWeight: 700, color: '#111827', marginBottom: 20 }}>
+          {/* Price Section */}
+          <div className="amz-pdp-price-section">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+              <span className="amz-deal-badge">Limited Time Deal</span>
+              <span className="amz-discount-pct">-{discountPct}%</span>
+              <div className="amz-pdp-current-price">
+                {formatPrice(product.pricePaise)}
+              </div>
+            </div>
+
+            <div style={{ fontSize: 13, color: '#565959' }}>
+              Typical M.R.P.: <s style={{ textDecoration: 'line-through' }}>{formatPrice(mrp)}</s>
+            </div>
+            <div className="amz-pdp-taxes">Inclusive of all taxes</div>
+
+            <div className="amz-pdp-emi">
+              <b>EMI</b> starts at ₹{Math.round(product.pricePaise / 2400)} per month. No Cost EMI available.
+            </div>
+
+            {/* Clip Coupon Box */}
+            <div className="amz-clip-coupon-box">
+              <input
+                type="checkbox"
+                id="clip-coupon"
+                checked={isCouponClipped}
+                onChange={e => {
+                  setIsCouponClipped(e.target.checked);
+                  onShowNotice(e.target.checked ? 'Coupon clipped! Extra 10% discount applied at checkout.' : 'Coupon unclipped.');
+                }}
+                style={{ width: 16, height: 16, cursor: 'pointer' }}
+              />
+              <label htmlFor="clip-coupon" style={{ cursor: 'pointer', fontSize: 13, color: '#0f1111' }}>
+                <span className="amz-coupon-badge">Coupon</span> Save an extra <b>10%</b> with coupon code <b>WELCOME10</b> at checkout.
+              </label>
+            </div>
+          </div>
+
+          {/* Trust Icons Matrix */}
+          <div className="amz-pdp-trust-matrix">
+            <div className="amz-pdp-trust-col">
+              <Truck size={24} />
+              <span>Free Prime Delivery</span>
+            </div>
+            <div className="amz-pdp-trust-col">
+              <RotateCcw size={24} />
+              <span>7 Days Replacement</span>
+            </div>
+            <div className="amz-pdp-trust-col">
+              <ShieldCheck size={24} />
+              <span>100% Genuine Handcrafted</span>
+            </div>
+            <div className="amz-pdp-trust-col">
+              <Lock size={24} />
+              <span>Secure Split Escrow</span>
+            </div>
+          </div>
+
+          {/* About this Item Feature Bullets */}
+          <div className="amz-pdp-bullets">
+            <h3 className="amz-pdp-bullets-title">About this item</h3>
+            <ul>
+              <li>
+                <strong>Handcrafted Studio Craft:</strong> Wheel-thrown, hand-stitched, or small-batch blended by master artisans across India with transparent maker attribution.
+              </li>
+              <li>
+                <strong>Premium Natural Materials:</strong> Uses pure indigenous clay, virgin metals, vegetable-tanned leather, or therapeutic botanicals with zero synthetic fillers.
+              </li>
+              <li>
+                <strong>Direct Maker Support:</strong> 90% of your purchase goes directly to the independent maker with automated split payments via Razorpay Route escrow.
+              </li>
+              <li>
+                <strong>Rigorous Quality Check:</strong> Every single batch passes through dimensional tolerance, finishing, and packaging tests before shipping.
+              </li>
+              <li>
+                <strong>Complete GST Compliance:</strong> Full downloadable tax invoice and tracking number delivered to your dashboard upon placement.
+              </li>
+            </ul>
+          </div>
+
+          {/* Specifications Table */}
+          <div style={{ marginTop: 24 }}>
+            <h3 className="amz-pdp-bullets-title">Product specifications</h3>
+            <table className="amz-specs-table">
+              <tbody>
+                <tr>
+                  <td>Department / Category</td>
+                  <td>{product.category}</td>
+                </tr>
+                <tr>
+                  <td>Stock Status</td>
+                  <td>{product.stock > 0 ? `${product.stock} units available` : 'Out of Stock'}</td>
+                </tr>
+                {product.specs && Object.entries(product.specs).map(([key, val]) => (
+                  <tr key={key}>
+                    <td>{key}</td>
+                    <td>{val}</td>
+                  </tr>
+                ))}
+                <tr>
+                  <td>Customer Rating</td>
+                  <td>{product.ratingAverage.toFixed(1)} out of 5 stars</td>
+                </tr>
+                <tr>
+                  <td>Country of Origin</td>
+                  <td>India</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Column 3: The Authentic Amazon Buy Box */}
+        <aside className="amz-buybox">
+          <div className="amz-buybox-price">
             {formatPrice(product.pricePaise)}
           </div>
 
-          <p style={{ fontSize: 15, lineHeight: 1.8, color: '#4b5563', marginBottom: 28 }}>
-            {product.description}
-          </p>
+          <div className="amz-buybox-delivery">
+            <span className="amz-prime-logo">prime</span>
+            FREE delivery <b>Tomorrow by 2 PM</b>. Order within <b>4 hrs 18 mins</b>.
+          </div>
 
-          {/* Action Row */}
-          <div style={{ display: 'flex', gap: 16, alignItems: 'center', marginBottom: 32 }}>
-            <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #d1d5db', borderRadius: 6, height: 46 }}>
-              <button
-                type="button"
-                onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                style={{ padding: '0 14px', height: '100%', background: 'none', border: 0, fontSize: 16 }}
-              >
-                -
-              </button>
-              <span style={{ padding: '0 12px', fontWeight: 600, fontSize: 14 }}>{quantity}</span>
-              <button
-                type="button"
-                onClick={() => setQuantity(Math.min(product.stock, quantity + 1))}
-                style={{ padding: '0 14px', height: '100%', background: 'none', border: 0, fontSize: 16 }}
-              >
-                +
-              </button>
+          <div className="amz-buybox-location" onClick={onOpenPinModal}>
+            <MapPin size={14} /> Deliver to New Delhi {deliveryPincode}
+          </div>
+
+          {product.stock > 0 ? (
+            <div className={`amz-buybox-stock ${product.stock <= 5 ? 'low' : ''}`}>
+              {product.stock <= 5 ? `Only ${product.stock} left in stock - order soon.` : 'In Stock'}
             </div>
+          ) : (
+            <div className="amz-buybox-stock low">Currently Unavailable</div>
+          )}
 
-            <button
-              className="primary-button"
+          {/* Quantity Selector */}
+          <div className="amz-buybox-qty">
+            <label htmlFor="qty-select">Quantity:</label>
+            <select
+              id="qty-select"
+              value={quantity}
+              onChange={e => setQuantity(parseInt(e.target.value, 10))}
               disabled={product.stock <= 0}
-              onClick={handleAddToCart}
-              style={{ flex: 1, height: 46, justifyContent: 'center', fontSize: 14 }}
             >
-              Add to Bag · {formatPrice(product.pricePaise * quantity)}
-            </button>
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(q => (
+                <option key={q} value={q}>{q}</option>
+              ))}
+            </select>
           </div>
 
-          {/* Trust Guarantees */}
-          <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: 20, display: 'grid', gap: 12 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: '#4b5563' }}>
-              <Truck size={16} color="#50684d" />
-              <span>Complimentary insured shipping on all orders over ₹500</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: '#4b5563' }}>
-              <Shield size={16} color="#50684d" />
-              <span>Direct maker payout guarantee with verified provenance</span>
-            </div>
+          {/* Yellow Add to Cart */}
+          <button
+            className="amz-btn-cart"
+            onClick={handleAddToCart}
+            disabled={product.stock <= 0}
+            style={{ marginBottom: 8 }}
+          >
+            <ShoppingCart size={16} /> Add to Cart
+          </button>
+
+          {/* Orange Buy Now */}
+          <button
+            className="amz-btn-buy"
+            onClick={handleBuyNow}
+            disabled={product.stock <= 0}
+          >
+            <Zap size={15} /> Buy Now
+          </button>
+
+          {/* Buy Box Seller & Dispatch Metadata */}
+          <div className="amz-buybox-meta">
+            <span>Ships from</span>
+            <b>Marketplace Express</b>
+            <span>Sold by</span>
+            <b>Artisan Partner Studio</b>
+            <span>Payment</span>
+            <b>Secure transaction</b>
           </div>
-        </div>
+
+          {/* Gift options */}
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#0f1111', cursor: 'pointer', marginTop: 12 }}>
+            <input type="checkbox" />
+            <span>Add gift options at checkout</span>
+          </label>
+
+          {/* Wishlist Button */}
+          {onToggleWishlist && (
+            <button
+              onClick={() => {
+                onToggleWishlist(product._id);
+                onShowNotice(isSaved ? 'Removed from your Wish List.' : 'Added to your Wish List.');
+              }}
+              style={{
+                width: '100%',
+                marginTop: 14,
+                padding: '6px 12px',
+                border: '1px solid #d5d9d9',
+                borderRadius: 4,
+                background: '#ffffff',
+                fontSize: 12,
+                color: '#0f1111',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+              }}
+            >
+              <Heart size={14} fill={isSaved ? '#b12704' : 'none'} color={isSaved ? '#b12704' : 'currentColor'} />
+              {isSaved ? 'Remove from Wish List' : 'Add to Wish List'}
+            </button>
+          )}
+
+          <div className="amz-buybox-security">
+            <Lock size={13} /> Your transaction is secure
+          </div>
+        </aside>
       </div>
 
-      {/* Reviews & Social Proof Section */}
-      <section style={{ marginTop: 64, borderTop: '1px solid #e5e7eb', paddingTop: 40 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 28 }}>
-          <div>
-            <div className="eyebrow"><span className="eyebrow-line" /> VERIFIED REPUTATION</div>
-            <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 28, margin: '8px 0 0' }}>Customer Impressions</h2>
+      {/* 3. Frequently Bought Together Bundle Widget */}
+      <section className="amz-bundle-box">
+        <h3 className="amz-bundle-title">Frequently bought together</h3>
+        <div className="amz-bundle-row">
+          <div className="amz-bundle-item">
+            <img src={product.imageUrl} alt={product.name} />
           </div>
-          <div style={{ fontSize: 14, color: '#6b7280' }}>
-            Rating: <strong>{product.ratingAverage.toFixed(1)} / 5</strong> based on {product.ratingCount} reviews
+          <span className="amz-bundle-plus">+</span>
+          <div className="amz-bundle-item">
+            <img
+              src="https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=400&q=80"
+              alt="Clothbound Journal"
+            />
+          </div>
+          <span className="amz-bundle-plus">+</span>
+          <div className="amz-bundle-item">
+            <img
+              src="https://images.unsplash.com/photo-1597481499750-3e6b22637e12?auto=format&fit=crop&w=400&q=80"
+              alt="Artisan Tea"
+            />
+          </div>
+
+          <div className="amz-bundle-calc">
+            <div className="amz-bundle-total">
+              Total price: <b>{formatPrice(product.pricePaise + 119900 + 99900)}</b>
+            </div>
+            <button
+              className="amz-btn-cart"
+              style={{ width: 'auto', padding: '8px 20px' }}
+              onClick={handleAddToCart}
+            >
+              Add all three to Cart
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* 4. Customer Questions & Answers Section */}
+      <section id="qa" style={{ marginTop: 40, borderTop: '1px solid #d5d9d9', paddingTop: 24 }}>
+        <h3 style={{ fontSize: 20, fontWeight: 700, marginBottom: 12 }}>Customer questions & answers</h3>
+        <input
+          type="text"
+          placeholder="Have a question? Search for answers…"
+          value={qaSearch}
+          onChange={e => setQaSearch(e.target.value)}
+          style={{
+            width: '100%',
+            maxWidth: 600,
+            padding: '10px 14px',
+            border: '1px solid #888c8c',
+            borderRadius: 4,
+            fontSize: 13,
+            marginBottom: 20,
+          }}
+        />
+
+        <div style={{ display: 'grid', gap: 14 }}>
+          {filteredFaqs.map((faq, idx) => (
+            <div
+              key={idx}
+              style={{
+                background: '#ffffff',
+                border: '1px solid #e5e7eb',
+                borderRadius: 6,
+                padding: '14px 18px',
+              }}
+            >
+              <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                <span style={{ fontWeight: 800, color: '#007185', fontSize: 13 }}>Q:</span>
+                <span style={{ fontWeight: 700, color: '#0f1111', fontSize: 14 }}>{faq.q}</span>
+              </div>
+              <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginTop: 8 }}>
+                <span style={{ fontWeight: 800, color: '#0f1111', fontSize: 13 }}>A:</span>
+                <span style={{ color: '#374151', fontSize: 13, lineHeight: 1.5 }}>{faq.a}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* 5. Comprehensive Reviews Section */}
+      <section id="reviews" className="amz-reviews-section">
+        {/* Left: Overall Rating Breakdown */}
+        <div>
+          <h3 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>Customer reviews</h3>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+            <div className="amz-stars">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Star
+                  key={i}
+                  size={18}
+                  fill={i < Math.floor(product.ratingAverage) ? 'currentColor' : 'none'}
+                  stroke="currentColor"
+                />
+              ))}
+            </div>
+            <span style={{ fontSize: 18, fontWeight: 700, color: '#0f1111' }}>
+              {product.ratingAverage.toFixed(1)} out of 5
+            </span>
+          </div>
+          <div style={{ fontSize: 13, color: '#565959', marginBottom: 16 }}>
+            {product.ratingCount} global ratings
+          </div>
+
+          {/* Rating Progress Bars */}
+          <div className="amz-review-bars">
+            {[
+              { star: 5, pct: 72 },
+              { star: 4, pct: 18 },
+              { star: 3, pct: 6 },
+              { star: 2, pct: 2 },
+              { star: 1, pct: 2 },
+            ].map(r => (
+              <div className="amz-review-bar-row" key={r.star}>
+                <span style={{ width: 44, color: '#007185' }}>{r.star} star</span>
+                <div className="amz-review-bar-track">
+                  <div className="amz-review-bar-fill" style={{ width: `${r.pct}%` }} />
+                </div>
+                <span style={{ width: 32, textAlign: 'right', color: '#565959' }}>{r.pct}%</span>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ borderTop: '1px solid #d5d9d9', marginTop: 24, paddingTop: 20 }}>
+            <h4 style={{ fontSize: 16, fontWeight: 700, marginBottom: 6 }}>Review this product</h4>
+            <p style={{ fontSize: 13, color: '#565959', marginBottom: 14 }}>
+              Share your thoughts with other customers. Verified buyers help build artisan trust.
+            </p>
+            <button
+              onClick={() => {
+                if (!isCustomer) onOpenAuth();
+                else setShowReviewModal(true);
+              }}
+              style={{
+                width: '100%',
+                padding: '8px 16px',
+                border: '1px solid #d5d9d9',
+                borderRadius: 4,
+                background: '#ffffff',
+                fontSize: 13,
+                fontWeight: 600,
+                color: '#0f1111',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+              }}
+            >
+              Write a customer review
+            </button>
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.4fr) minmax(0, 1fr)', gap: 40, alignItems: 'start' }}>
-          {/* Reviews List */}
-          <div style={{ display: 'grid', gap: 16 }}>
-            {(!reviewsData?.items || reviewsData.items.length === 0) ? (
-              <div style={{ background: '#f9fafb', padding: 24, borderRadius: 8, color: '#6b7280', fontSize: 14 }}>
-                No reviews yet. Be the first customer to leave an impression on this artisan piece.
-              </div>
-            ) : (
-              reviewsData.items.map(rev => (
-                <article
-                  key={rev._id}
-                  style={{
-                    background: '#fff',
-                    border: '1px solid #e5e7eb',
-                    borderRadius: 8,
-                    padding: 20,
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <div style={{ display: 'flex', color: '#b48a3e' }}>
-                        {[...Array(5)].map((_, i) => (
-                          <Star
-                            key={i}
-                            size={14}
-                            fill={i < rev.rating ? 'currentColor' : 'none'}
-                            color={i < rev.rating ? 'currentColor' : '#d1d5db'}
-                          />
-                        ))}
-                      </div>
-                      {rev.headline && <strong style={{ fontSize: 14, color: '#111827', marginLeft: 4 }}>{rev.headline}</strong>}
-                    </div>
-                    {rev.verifiedPurchase && (
-                      <span style={{ fontSize: 11, color: '#16a34a', display: 'flex', alignItems: 'center', gap: 3, fontWeight: 600 }}>
-                        <Check size={12} /> Verified Purchase
-                      </span>
-                    )}
+        {/* Right: Customer Reviews Feed */}
+        <div>
+          <h4 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16 }}>
+            Top reviews from verified purchasers
+          </h4>
+
+          {reviews.length === 0 ? (
+            <div style={{ background: '#f9fafb', padding: 24, borderRadius: 6, color: '#565959' }}>
+              No reviews written yet. Be the first to review this artisanal masterpiece!
+            </div>
+          ) : (
+            reviews.map(review => (
+              <div className="amz-review-card" key={review._id}>
+                <div className="amz-review-author">
+                  <div className="amz-review-avatar">
+                    {review.customerName.charAt(0).toUpperCase()}
                   </div>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: '#0f1111' }}>
+                    {review.customerName}
+                  </span>
+                </div>
 
-                  <p style={{ fontSize: 13, color: '#374151', lineHeight: 1.6, margin: '0 0 10px' }}>{rev.comment}</p>
-                  <div style={{ fontSize: 11, color: '#9ca3af' }}>By {rev.customerName} · {new Date(rev.createdAt).toLocaleDateString()}</div>
-                </article>
-              ))
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                  <div className="amz-stars">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <Star
+                        key={i}
+                        size={13}
+                        fill={i < review.rating ? 'currentColor' : 'none'}
+                        stroke="currentColor"
+                      />
+                    ))}
+                  </div>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: '#0f1111' }}>
+                    {review.headline || 'Excellent quality & craft'}
+                  </span>
+                </div>
+
+                <div style={{ fontSize: 12, color: '#565959', marginBottom: 6 }}>
+                  Reviewed in India on {new Date(review.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                </div>
+
+                {review.verifiedPurchase && (
+                  <div className="amz-verified-tag" style={{ marginBottom: 8 }}>
+                    Verified Purchase
+                  </div>
+                )}
+
+                <p style={{ fontSize: 13, lineHeight: 1.5, color: '#0f1111', marginBottom: 12 }}>
+                  {review.comment}
+                </p>
+
+                {/* Helpful Vote Button */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 12, color: '#565959' }}>
+                  <span>{helpfulVotes[review._id] ? `${helpfulVotes[review._id]} people found this helpful` : 'Was this review helpful?'}</span>
+                  <button
+                    onClick={() => handleVoteHelpful(review._id)}
+                    style={{
+                      border: '1px solid #d5d9d9',
+                      padding: '3px 12px',
+                      borderRadius: 4,
+                      background: '#ffffff',
+                      fontSize: 12,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      color: '#0f1111',
+                    }}
+                  >
+                    <ThumbsUp size={12} /> Helpful
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </section>
+
+      {/* Review Submission Modal */}
+      {showReviewModal && (
+        <div className="amz-modal-backdrop" onClick={() => setShowReviewModal(false)}>
+          <div
+            className="amz-checkout-modal"
+            style={{ maxWidth: 540, padding: 24 }}
+            onClick={e => e.stopPropagation()}
+          >
+            <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 4 }}>Create Review</h3>
+            <p style={{ fontSize: 13, color: '#565959', marginBottom: 16 }}>
+              {product.name}
+            </p>
+
+            {reviewMsg && (
+              <div style={{ color: '#b12704', fontSize: 13, marginBottom: 12 }}>{reviewMsg}</div>
             )}
-          </div>
 
-          {/* Write a Review Box */}
-          <div style={{ background: '#faf9f5', border: '1px solid #e7e5dc', borderRadius: 8, padding: 24 }}>
-            <h3 style={{ margin: '0 0 8px', fontSize: 16, fontWeight: 700, color: '#111827' }}>Write an Impression</h3>
-            <p style={{ margin: '0 0 16px', fontSize: 12, color: '#6b7280' }}>Share your feedback with fellow conscious buyers.</p>
-
-            <form onSubmit={handleReviewSubmit} style={{ display: 'grid', gap: 12 }}>
+            <form onSubmit={handleReviewSubmit} style={{ display: 'grid', gap: 16 }}>
               <div>
-                <label style={{ fontSize: 11, fontWeight: 600, color: '#4b5563', display: 'block', marginBottom: 6 }}>Rating Score</label>
-                <div style={{ display: 'flex', gap: 6 }}>
-                  {[1, 2, 3, 4, 5].map(star => (
+                <label style={{ fontSize: 13, fontWeight: 700, display: 'block', marginBottom: 6 }}>Overall rating</label>
+                <div style={{ display: 'flex', gap: 6, color: '#de7921', cursor: 'pointer' }}>
+                  {[1, 2, 3, 4, 5].map(st => (
                     <button
-                      key={star}
                       type="button"
-                      onClick={() => setRatingInput(star)}
-                      style={{ background: 'none', border: 0, padding: 2, cursor: 'pointer', color: star <= ratingInput ? '#b48a3e' : '#d1d5db' }}
+                      key={st}
+                      onClick={() => setRatingInput(st)}
+                      style={{ color: 'inherit' }}
                     >
-                      <Star size={22} fill={star <= ratingInput ? 'currentColor' : 'none'} />
+                      <Star size={24} fill={st <= ratingInput ? 'currentColor' : 'none'} />
                     </button>
                   ))}
                 </div>
               </div>
 
-              <label style={{ fontSize: 11, fontWeight: 600, color: '#4b5563', display: 'grid', gap: 4 }}>
-                Review Headline (Optional)
+              <div>
+                <label style={{ fontSize: 13, fontWeight: 700, display: 'block', marginBottom: 6 }}>Add a headline</label>
                 <input
+                  type="text"
+                  placeholder="What's most important to know?"
                   value={headline}
                   onChange={e => setHeadline(e.target.value)}
-                  placeholder="e.g. Masterful pottery and finish"
-                  style={{ padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 4, fontSize: 12 }}
-                />
-              </label>
-
-              <label style={{ fontSize: 11, fontWeight: 600, color: '#4b5563', display: 'grid', gap: 4 }}>
-                Your Thoughts
-                <textarea
+                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #d5d9d9', borderRadius: 4 }}
                   required
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: 13, fontWeight: 700, display: 'block', marginBottom: 6 }}>Add a written review</label>
+                <textarea
+                  placeholder="What did you like or dislike? How was the unboxing and craft finish?"
                   rows={4}
                   value={comment}
                   onChange={e => setComment(e.target.value)}
-                  placeholder="Detail the materials, longevity, and your unboxing experience…"
-                  style={{ padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 4, fontSize: 12, resize: 'vertical' }}
+                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #d5d9d9', borderRadius: 4, resize: 'vertical' }}
+                  required
                 />
-              </label>
+              </div>
 
-              {reviewMsg && (
-                <div style={{ fontSize: 12, color: reviewMsg.includes('Thank') ? '#16a34a' : '#dc2626' }}>
-                  {reviewMsg}
-                </div>
-              )}
-
-              <button
-                type="submit"
-                disabled={addReviewState.isLoading || !comment.trim()}
-                className="primary-button"
-                style={{ marginTop: 4, justifyContent: 'center' }}
-              >
-                Submit Review
-              </button>
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 8 }}>
+                <button
+                  type="button"
+                  onClick={() => setShowReviewModal(false)}
+                  style={{ padding: '8px 16px', border: '1px solid #d5d9d9', borderRadius: 4, background: '#fff' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="amz-btn-cart"
+                  style={{ width: 'auto', padding: '8px 24px' }}
+                  disabled={addReviewState.isLoading}
+                >
+                  {addReviewState.isLoading ? 'Submitting…' : 'Submit Review'}
+                </button>
+              </div>
             </form>
           </div>
         </div>
-      </section>
+      )}
     </div>
   );
 };

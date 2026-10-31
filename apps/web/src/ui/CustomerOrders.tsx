@@ -1,12 +1,33 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
-import { ArrowLeft, Download, Package } from 'lucide-react';
-import { useOrdersQuery } from '../api';
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import {
+  ArrowLeft,
+  Check,
+  Download,
+  Package,
+  Search,
+  ShoppingCart,
+} from 'lucide-react';
+import { useOrdersQuery, useUpdateCartMutation, useCartQuery } from '../api';
 import { formatPrice } from '../utils';
 
 export const CustomerOrders: React.FC = () => {
+  const navigate = useNavigate();
   const { data: ordersData, isLoading } = useOrdersQuery();
-  const orders = ordersData?.items ?? [];
+  const { data: cartData } = useCartQuery();
+  const [updateCart] = useUpdateCartMutation();
+
+  const [searchFilter, setSearchFilter] = useState('');
+  const [activeTrackingOrder, setActiveTrackingOrder] = useState<any | null>(null);
+
+  const rawOrders = ordersData?.items ?? [];
+  const orders = rawOrders.filter(order => {
+    if (!searchFilter.trim()) return true;
+    const term = searchFilter.toLowerCase();
+    const matchesId = order._id.toLowerCase().includes(term) || (order.invoiceNumber || '').toLowerCase().includes(term);
+    const matchesItem = order.items.some(i => i.name.toLowerCase().includes(term));
+    return matchesId || matchesItem;
+  });
 
   const getStatusStep = (status: string) => {
     switch (status) {
@@ -19,165 +40,310 @@ export const CustomerOrders: React.FC = () => {
     }
   };
 
+  const handleBuyAgain = async (item: any) => {
+    const items = (cartData?.items ?? []).map(i => ({ productId: i.product._id, quantity: i.quantity }));
+    const match = items.find(i => i.productId === item.productId);
+    if (match) {
+      match.quantity += 1;
+    } else {
+      items.push({ productId: item.productId, quantity: 1 });
+    }
+    await updateCart({ items });
+    navigate('/');
+  };
+
   return (
-    <div style={{ maxWidth: 1000, margin: '0 auto', padding: '36px 20px 80px' }}>
-      <div style={{ marginBottom: 24 }}>
-        <Link to="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#6b7280' }}>
+    <div style={{ maxWidth: 1120, margin: '0 auto', padding: '24px 20px 80px' }}>
+      {/* Breadcrumb Navigation */}
+      <div style={{ marginBottom: 16 }}>
+        <Link to="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#007185' }}>
           <ArrowLeft size={14} /> Back to Storefront
         </Link>
       </div>
 
-      <div className="eyebrow"><span className="eyebrow-line" /> YOUR PURCHASES</div>
-      <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 32, margin: '8px 0 24px', color: '#111827' }}>
-        Order History & Tracking
-      </h1>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: 16, marginBottom: 20 }}>
+        <div>
+          <h1 style={{ fontSize: 28, fontWeight: 700, color: '#0f1111' }}>Your Orders</h1>
+          <p style={{ fontSize: 13, color: '#565959', marginTop: 4 }}>
+            Track deliveries, download official GST invoices, and leave verified artisan reviews.
+          </p>
+        </div>
+
+        {/* Search orders input */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ position: 'relative' }}>
+            <Search size={15} style={{ position: 'absolute', left: 10, top: 10, color: '#767676' }} />
+            <input
+              type="text"
+              placeholder="Search all orders…"
+              value={searchFilter}
+              onChange={e => setSearchFilter(e.target.value)}
+              style={{
+                padding: '7px 12px 7px 32px',
+                border: '1px solid #888c8c',
+                borderRadius: 4,
+                fontSize: 13,
+                width: 260,
+              }}
+            />
+          </div>
+        </div>
+      </div>
 
       {isLoading ? (
-        <div className="loading-state" style={{ padding: 40, textAlign: 'center' }}>Loading your orders…</div>
+        <div style={{ padding: '60px 20px', textAlign: 'center', background: '#fff', borderRadius: 6 }}>
+          <h3>Loading your order history…</h3>
+        </div>
       ) : orders.length === 0 ? (
-        <div className="empty-state" style={{ background: '#f9fafb', padding: '48px 24px', borderRadius: 8, textAlign: 'center' }}>
-          <Package size={36} color="#9ca3af" style={{ margin: '0 auto 12px' }} />
-          <h3>No orders placed yet</h3>
-          <p style={{ color: '#6b7280', fontSize: 14, margin: '6px 0 20px' }}>When you purchase curated items, you can track fulfillment stages and download tax invoices here.</p>
-          <Link to="/" className="primary-button">Explore Curated Collection</Link>
+        <div style={{ background: '#fff', padding: '48px 24px', borderRadius: 8, textAlign: 'center', border: '1px solid #d5d9d9' }}>
+          <Package size={48} color="#cccccc" style={{ margin: '0 auto 16px' }} />
+          <h3 style={{ fontSize: 18, color: '#0f1111', marginBottom: 8 }}>No orders found</h3>
+          <p style={{ color: '#565959', fontSize: 13, marginBottom: 20 }}>
+            {searchFilter ? 'No orders match your search criteria.' : 'You haven’t placed any orders yet. Discover our curated collection!'}
+          </p>
+          <Link to="/" className="amz-btn-cart" style={{ display: 'inline-flex', width: 'auto', padding: '10px 24px' }}>
+            Explore Curated Artisan Collection
+          </Link>
         </div>
       ) : (
-        <div style={{ display: 'grid', gap: 24 }}>
+        <div style={{ display: 'grid', gap: 20 }}>
           {orders.map(order => {
             const step = getStatusStep(order.status);
+            const isDelivered = order.status === 'DELIVERED';
+            const isShipped = order.status === 'SHIPPED';
+
             return (
               <div
                 key={order._id}
                 style={{
-                  background: '#fff',
-                  border: '1px solid #e5e7eb',
+                  background: '#ffffff',
+                  border: '1px solid #d5d9d9',
                   borderRadius: 8,
                   overflow: 'hidden',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
                 }}
               >
-                {/* Order Header */}
-                <div style={{ background: '#f9fafb', padding: '16px 24px', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-                  <div>
-                    <div style={{ fontSize: 11, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Order Reference</div>
-                    <div style={{ fontSize: 15, fontWeight: 700, color: '#111827' }}>#{order._id.slice(-8).toUpperCase()}</div>
-                    <div style={{ fontSize: 12, color: '#9ca3af' }}>Placed on {new Date(order.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+                {/* Amazon-style Order Header Strip */}
+                <div
+                  style={{
+                    background: '#f0f2f2',
+                    padding: '14px 20px',
+                    borderBottom: '1px solid #d5d9d9',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                    gap: 16,
+                    fontSize: 12,
+                    color: '#565959',
+                  }}
+                >
+                  <div style={{ display: 'flex', gap: 32, flexWrap: 'wrap' }}>
+                    <div>
+                      <div style={{ textTransform: 'uppercase', letterSpacing: '0.04em' }}>Order Placed</div>
+                      <b style={{ color: '#0f1111', fontSize: 13 }}>
+                        {new Date(order.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      </b>
+                    </div>
+                    <div>
+                      <div style={{ textTransform: 'uppercase', letterSpacing: '0.04em' }}>Total</div>
+                      <b style={{ color: '#0f1111', fontSize: 13 }}>{formatPrice(order.totalPaise)}</b>
+                    </div>
+                    <div>
+                      <div style={{ textTransform: 'uppercase', letterSpacing: '0.04em' }}>Ship To</div>
+                      <b style={{ color: '#007185', fontSize: 13, cursor: 'pointer' }}>
+                        {order.addressSnapshot.recipient} ▾
+                      </b>
+                    </div>
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                  <div style={{ textAlign: 'right' }}>
                     <div>
-                      <div style={{ fontSize: 11, color: '#6b7280', textAlign: 'right' }}>Total Paid</div>
-                      <div style={{ fontSize: 16, fontWeight: 800, color: '#111827' }}>{formatPrice(order.totalPaise)}</div>
+                      ORDER # <strong style={{ color: '#0f1111' }}>{order.invoiceNumber || order._id.slice(-8).toUpperCase()}</strong>
                     </div>
-
-                    <a
-                      href={`http://localhost:4000/api/v1/orders/${order._id}/invoice`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="primary-button"
-                      style={{ padding: '8px 14px', fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 6 }}
-                    >
-                      <Download size={14} /> Tax Invoice
-                    </a>
+                    <div style={{ marginTop: 4, display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+                      <a
+                        href={`http://localhost:4000/api/v1/orders/${order._id}/invoice`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ color: '#007185', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                      >
+                        <Download size={13} /> View Invoice
+                      </a>
+                    </div>
                   </div>
                 </div>
 
-                {/* Lifecycle Progress Bar */}
-                <div style={{ padding: '24px 24px 16px', background: '#fafaf9', borderBottom: '1px solid #f3f4f6' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', position: 'relative' }}>
-                    <div
+                {/* Body Content */}
+                <div style={{ padding: '20px 24px' }}>
+                  {/* Delivery Status Banner */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                    <div>
+                      <h3 style={{ fontSize: 17, fontWeight: 700, color: isDelivered ? '#007600' : '#0f1111' }}>
+                        {isDelivered ? 'Delivered successfully' : isShipped ? 'Package in transit with BlueDart' : 'Preparing for dispatch'}
+                      </h3>
+                      <div style={{ fontSize: 13, color: '#565959', marginTop: 2 }}>
+                        {isDelivered ? 'Handed directly to resident' : 'Expected delivery: Tomorrow by 2 PM'}
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => setActiveTrackingOrder(order)}
                       style={{
-                        position: 'absolute',
-                        top: 14,
-                        left: '10%',
-                        right: '10%',
-                        height: 3,
-                        background: '#e5e7eb',
-                        zIndex: 1,
+                        padding: '6px 14px',
+                        border: '1px solid #d5d9d9',
+                        borderRadius: 4,
+                        background: '#ffffff',
+                        fontSize: 12,
+                        fontWeight: 600,
+                        color: '#0f1111',
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
                       }}
                     >
-                      <div
-                        style={{
-                          height: '100%',
-                          background: '#50684d',
-                          width: `${((step - 1) / 3) * 100}%`,
-                          transition: 'width 0.4s ease',
-                        }}
-                      />
-                    </div>
+                      Track Package
+                    </button>
+                  </div>
 
-                    {[
-                      { num: 1, label: 'Order Placed', desc: 'Payment verified' },
-                      { num: 2, label: 'Packed by Maker', desc: 'Crafting & wrapping' },
-                      { num: 3, label: 'Shipped', desc: 'In courier transit' },
-                      { num: 4, label: 'Delivered', desc: 'At your doorstep' },
-                    ].map(st => {
-                      const isComplete = step >= st.num;
-                      const isCurrent = step === st.num;
-                      return (
-                        <div key={st.num} style={{ position: 'relative', zIndex: 2, textAlign: 'center', width: '22%' }}>
-                          <div
+                  {/* Visual 4-Stage Fulfillment Tracker */}
+                  <div style={{ margin: '16px 0 24px', background: '#f8f9fa', padding: '16px 20px', borderRadius: 6, border: '1px solid #eee' }}>
+                    <div className="amz-order-tracker-bar">
+                      <div className="amz-tracker-line">
+                        <div
+                          className="amz-tracker-fill"
+                          style={{ width: `${Math.max(0, ((step - 1) / 3) * 100)}%` }}
+                        />
+                      </div>
+
+                      {[
+                        { num: 1, label: 'Order Placed', desc: 'Verified & Escrowed' },
+                        { num: 2, label: 'Packed by Maker', desc: 'Custom wrapping' },
+                        { num: 3, label: 'Shipped', desc: 'Express Courier' },
+                        { num: 4, label: 'Delivered', desc: 'At your doorstep' },
+                      ].map(st => {
+                        const isDone = step >= st.num;
+                        const isCurrent = step === st.num;
+                        return (
+                          <div key={st.num} className="amz-tracker-node">
+                            <div className={`amz-tracker-circle ${isDone ? 'done' : ''}`}>
+                              {isDone ? '✓' : st.num}
+                            </div>
+                            <div style={{ fontSize: 12, fontWeight: isCurrent ? 700 : 500, color: isCurrent ? '#0f1111' : '#565959' }}>
+                              {st.label}
+                            </div>
+                            <div style={{ fontSize: 10, color: '#767676' }}>{st.desc}</div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Order Items */}
+                  <div style={{ display: 'grid', gap: 16 }}>
+                    {order.items.map(item => (
+                      <div
+                        key={item._id}
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: '70px 1fr auto',
+                          gap: 16,
+                          alignItems: 'center',
+                          paddingBottom: 14,
+                          borderBottom: '1px solid #f0f0f0',
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: 70,
+                            height: 70,
+                            background: '#f8f8f8',
+                            borderRadius: 4,
+                            border: '1px solid #eee',
+                            display: 'grid',
+                            placeItems: 'center',
+                          }}
+                        >
+                          <Package size={32} color="#999" />
+                        </div>
+
+                        <div>
+                          <Link
+                            to={`/product/${item.productId}`}
+                            style={{ fontSize: 14, fontWeight: 700, color: '#007185', lineHeight: 1.3 }}
+                          >
+                            {item.name}
+                          </Link>
+                          <div style={{ fontSize: 12, color: '#565959', marginTop: 4 }}>
+                            Qty: {item.quantity} · Price: {formatPrice(item.unitPricePaise)}
+                          </div>
+                          <div style={{ fontSize: 11, color: '#007600', fontWeight: 600, marginTop: 2 }}>
+                            Status: {item.fulfillmentStatus}
+                            {item.trackingNumber && ` (Tracking: ${item.trackingNumber})`}
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'grid', gap: 8 }}>
+                          <button
+                            className="amz-btn-cart"
+                            onClick={() => handleBuyAgain(item)}
+                            style={{ width: 'auto', padding: '6px 14px', fontSize: 12 }}
+                          >
+                            <ShoppingCart size={13} /> Buy it again
+                          </button>
+                          <Link
+                            to={`/product/${item.productId}#reviews`}
                             style={{
-                              width: 28,
-                              height: 28,
-                              borderRadius: '50%',
-                              background: isComplete ? '#50684d' : '#fff',
-                              color: isComplete ? '#fff' : '#9ca3af',
-                              border: `2px solid ${isComplete ? '#50684d' : '#d1d5db'}`,
-                              display: 'grid',
-                              placeItems: 'center',
-                              margin: '0 auto 6px',
+                              padding: '5px 12px',
+                              border: '1px solid #d5d9d9',
+                              borderRadius: 4,
+                              background: '#fff',
                               fontSize: 12,
-                              fontWeight: 700,
+                              textAlign: 'center',
+                              color: '#0f1111',
                             }}
                           >
-                            {isComplete ? '✓' : st.num}
-                          </div>
-                          <div style={{ fontSize: 12, fontWeight: isCurrent ? 700 : 500, color: isCurrent ? '#111827' : '#6b7280' }}>
-                            {st.label}
-                          </div>
-                          <div style={{ fontSize: 10, color: '#9ca3af' }}>{st.desc}</div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Items & Shipping Details */}
-                <div style={{ padding: 24 }}>
-                  <div style={{ display: 'grid', gap: 14 }}>
-                    {order.items.map(item => (
-                      <div key={item._id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div>
-                          <div style={{ fontWeight: 600, fontSize: 14, color: '#111827' }}>
-                            {item.quantity} × {item.name}
-                          </div>
-                          <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>
-                            Status: <span style={{ fontWeight: 600, color: '#50684d' }}>{item.fulfillmentStatus}</span>
-                            {item.trackingNumber && <span> · Tracking: <code>{item.trackingNumber}</code> ({item.courier || 'Express'})</span>}
-                          </div>
-                        </div>
-                        <div style={{ fontWeight: 700, fontSize: 14, color: '#374151' }}>
-                          {formatPrice(item.unitPricePaise * item.quantity)}
+                            Write a product review
+                          </Link>
                         </div>
                       </div>
                     ))}
-                  </div>
-
-                  {order.discountPaise > 0 && (
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: '#16a34a', borderTop: '1px solid #f3f4f6', paddingTop: 12, marginTop: 14 }}>
-                      <span>Coupon Discount ({order.couponCode || 'PROMO'})</span>
-                      <span>-{formatPrice(order.discountPaise)}</span>
-                    </div>
-                  )}
-
-                  <div style={{ borderTop: '1px solid #f3f4f6', paddingTop: 14, marginTop: 14, fontSize: 12, color: '#6b7280' }}>
-                    <strong>Delivering to:</strong> {order.addressSnapshot.recipient} · {order.addressSnapshot.line1}, {order.addressSnapshot.city}, {order.addressSnapshot.state} - {order.addressSnapshot.postalCode}
                   </div>
                 </div>
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Tracking Modal */}
+      {activeTrackingOrder && (
+        <div className="amz-modal-backdrop" onClick={() => setActiveTrackingOrder(null)}>
+          <div className="amz-checkout-modal" style={{ maxWidth: 500, padding: 24 }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+              <h3 style={{ fontSize: 18, fontWeight: 700 }}>Tracking details</h3>
+              <button onClick={() => setActiveTrackingOrder(null)}><Check size={20} /></button>
+            </div>
+            <div style={{ fontSize: 13, color: '#565959', marginBottom: 14 }}>
+              Order Reference: <strong>#{activeTrackingOrder._id.slice(-8).toUpperCase()}</strong>
+            </div>
+            <div style={{ background: '#f8f9fa', border: '1px solid #eee', borderRadius: 6, padding: 14, marginBottom: 16 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#007600', marginBottom: 4 }}>
+                Carrier: BlueDart Express Ground
+              </div>
+              <div style={{ fontSize: 12, color: '#565959' }}>
+                Tracking ID: <strong>BLUEDART-IND-{activeTrackingOrder._id.slice(-6).toUpperCase()}</strong>
+              </div>
+              <div style={{ fontSize: 12, color: '#565959', marginTop: 2 }}>
+                Destination: {activeTrackingOrder.addressSnapshot.city}, {activeTrackingOrder.addressSnapshot.postalCode}
+              </div>
+            </div>
+            <button
+              className="amz-btn-cart"
+              onClick={() => setActiveTrackingOrder(null)}
+              style={{ width: '100%' }}
+            >
+              Close Tracking Details
+            </button>
+          </div>
         </div>
       )}
     </div>
