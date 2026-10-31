@@ -71,7 +71,7 @@ export const CustomerOrders: React.FC = () => {
     <div style={{ maxWidth: 1120, margin: '0 auto', padding: '24px 20px 80px' }}>
       {/* Breadcrumb Navigation */}
       <div style={{ marginBottom: 16 }}>
-        <Link to="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#007185' }}>
+        <Link to="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#455d46' }}>
           <ArrowLeft size={14} /> Back to Storefront
         </Link>
       </div>
@@ -139,41 +139,41 @@ export const CustomerOrders: React.FC = () => {
                 key={order._id}
                 style={{
                   background: '#ffffff',
-                  border: '1px solid #d5d9d9',
+                  border: '1px solid #e7e4db',
                   borderRadius: 8,
                   overflow: 'hidden',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+                  boxShadow: '0 2px 6px rgba(36,43,35,0.04)',
                 }}
               >
-                {/* Amazon-style Order Header Strip */}
+                {/* Order Header Strip */}
                 <div
                   style={{
-                    background: '#f0f2f2',
+                    background: '#f8f6f0',
                     padding: '14px 20px',
-                    borderBottom: '1px solid #d5d9d9',
+                    borderBottom: '1px solid #e7e4db',
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
                     flexWrap: 'wrap',
                     gap: 16,
                     fontSize: 12,
-                    color: '#565959',
+                    color: '#72766d',
                   }}
                 >
                   <div style={{ display: 'flex', gap: 32, flexWrap: 'wrap' }}>
                     <div>
                       <div style={{ textTransform: 'uppercase', letterSpacing: '0.04em' }}>Order Placed</div>
-                      <b style={{ color: '#0f1111', fontSize: 13 }}>
+                      <b style={{ color: '#242b23', fontSize: 13 }}>
                         {new Date(order.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                       </b>
                     </div>
                     <div>
                       <div style={{ textTransform: 'uppercase', letterSpacing: '0.04em' }}>Total</div>
-                      <b style={{ color: '#0f1111', fontSize: 13 }}>{formatPrice(order.totalPaise)}</b>
+                      <b style={{ color: '#242b23', fontSize: 13 }}>{formatPrice(order.totalPaise)}</b>
                     </div>
                     <div>
                       <div style={{ textTransform: 'uppercase', letterSpacing: '0.04em' }}>Ship To</div>
-                      <b style={{ color: '#007185', fontSize: 13, cursor: 'pointer' }}>
+                      <b style={{ color: '#455d46', fontSize: 13, cursor: 'pointer' }}>
                         {order.addressSnapshot.recipient} ▾
                       </b>
                     </div>
@@ -192,7 +192,7 @@ export const CustomerOrders: React.FC = () => {
                               href={invoiceUrl}
                               target="_blank"
                               rel="noopener noreferrer"
-                              style={{ color: '#007185', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                              style={{ color: '#455d46', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4 }}
                             >
                               <Download size={13} /> View Invoice
                             </a>
@@ -347,14 +347,14 @@ export const CustomerOrders: React.FC = () => {
                         <div>
                           <Link
                             to={`/product/${item.productId}`}
-                            style={{ fontSize: 14, fontWeight: 700, color: '#007185', lineHeight: 1.3 }}
+                            style={{ fontSize: 14, fontWeight: 700, color: '#455d46', lineHeight: 1.3 }}
                           >
                             {item.name}
                           </Link>
-                          <div style={{ fontSize: 12, color: '#565959', marginTop: 4 }}>
+                          <div style={{ fontSize: 12, color: '#72766d', marginTop: 4 }}>
                             Qty: {item.quantity} · Price: {formatPrice(item.unitPricePaise)}
                           </div>
-                          <div style={{ fontSize: 11, color: '#007600', fontWeight: 600, marginTop: 2 }}>
+                          <div style={{ fontSize: 11, color: '#2e6338', fontWeight: 600, marginTop: 2 }}>
                             Status: {item.fulfillmentStatus}
                             {item.trackingNumber && ` (Tracking: ${item.trackingNumber})`}
                           </div>
@@ -372,12 +372,12 @@ export const CustomerOrders: React.FC = () => {
                             to={`/product/${item.productId}#reviews`}
                             style={{
                               padding: '5px 12px',
-                              border: '1px solid #d5d9d9',
+                              border: '1px solid #e7e4db',
                               borderRadius: 4,
                               background: '#fff',
                               fontSize: 12,
                               textAlign: 'center',
-                              color: '#0f1111',
+                              color: '#242b23',
                             }}
                           >
                             Write a product review

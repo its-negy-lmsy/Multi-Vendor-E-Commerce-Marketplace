@@ -58,7 +58,7 @@ export const WishlistDrawer: React.FC<WishlistDrawerProps> = ({
       <aside className="amz-cart-drawer">
         <div className="amz-cart-header">
           <h2>
-            <Heart size={20} fill="#febd69" color="#febd69" /> Your Wish List ({savedProducts.length} items)
+            <Heart size={20} fill="#aa775e" color="#aa775e" /> Your Wish List ({savedProducts.length} items)
           </h2>
           <button onClick={onClose} style={{ color: '#fff' }}><X size={22} /></button>
         </div>

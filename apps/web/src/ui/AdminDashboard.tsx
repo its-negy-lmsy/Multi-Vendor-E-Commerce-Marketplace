@@ -393,12 +393,12 @@ export const AdminDashboard: React.FC = () => {
                 alignItems: 'center',
                 gap: 6,
                 padding: '8px 16px',
-                background: '#ffd814',
-                border: '1px solid #fcd200',
+                background: '#455d46',
+                border: '1px solid #3d523e',
                 borderRadius: 6,
                 fontSize: 12,
                 fontWeight: 700,
-                color: '#0f1111',
+                color: '#ffffff',
                 cursor: 'pointer',
               }}
             >
@@ -408,7 +408,7 @@ export const AdminDashboard: React.FC = () => {
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
             {couponsData?.items.map(coupon => (
-              <div key={coupon._id} style={{ border: '1px dashed #febd69', borderRadius: 8, padding: 16, background: '#fafbf9' }}>
+              <div key={coupon._id} style={{ border: '1px dashed #c4bc9f', borderRadius: 8, padding: 16, background: '#fafbf9' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <code style={{ fontSize: 16, fontWeight: 800, color: '#0f1111', letterSpacing: '0.05em' }}>{coupon.code}</code>
                   <span style={{ fontSize: 10, fontWeight: 700, background: '#dcfce7', color: '#15803d', padding: '2px 6px', borderRadius: 4 }}>

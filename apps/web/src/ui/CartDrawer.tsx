@@ -6,6 +6,7 @@ import {
   Minus,
   Plus,
   ShieldCheck,
+  ShoppingBag,
   ShoppingCart,
   Store,
   Tag,
@@ -205,9 +206,9 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
         {/* Drawer Header */}
         <div className="amz-cart-header">
           <h2>
-            <ShoppingCart size={22} color="#febd69" /> Shopping Cart ({items.length} items)
+            <ShoppingBag size={22} color="#aa775e" /> Shopping Bag ({items.length} items)
           </h2>
-          <button onClick={onClose} style={{ color: '#ffffff' }} aria-label="Close Cart">
+          <button onClick={onClose} style={{ color: '#ffffff' }} aria-label="Close Bag">
             <X size={22} />
           </button>
         </div>
@@ -221,7 +222,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
               <span>🎉 <strong>You have unlocked FREE Delivery</strong> on this order!</span>
             ) : (
               <span>
-                Add <strong>{formatPrice(50000 - subtotalPaise)}</strong> more to get <strong>FREE Prime Delivery</strong>
+                Add <strong>{formatPrice(50000 - subtotalPaise)}</strong> more to get <strong>FREE Express Delivery</strong>
               </span>
             )}
           </div>
@@ -233,9 +234,9 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
           )}
 
           {items.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '60px 20px', color: '#565959' }}>
+            <div style={{ textAlign: 'center', padding: '60px 20px', color: '#72766d' }}>
               <ShoppingCart size={48} color="#cccccc" style={{ margin: '0 auto 16px' }} />
-              <h3 style={{ fontSize: 18, color: '#0f1111', marginBottom: 8 }}>Your Amazon Cart is empty</h3>
+              <h3 style={{ fontSize: 18, color: '#242b23', marginBottom: 8 }}>Your Bag is empty</h3>
               <p style={{ fontSize: 13, marginBottom: 20 }}>Explore handcrafted artisan treasures and support independent makers.</p>
               <button className="amz-btn-cart" onClick={onClose} style={{ width: 'auto', padding: '8px 24px', margin: '0 auto' }}>
                 Continue Shopping
@@ -248,10 +249,10 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                 <div className="amz-cart-vendor-box" key={vendorId}>
                   <div className="amz-cart-vendor-head">
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <Store size={14} color="#007185" />
+                      <Store size={14} color="#455d46" />
                       <span>Package {vIdx + 1}: Dispatched by Artisan Studio</span>
                     </div>
-                    <span>★ Prime Express</span>
+                    <span>★ Artisan Express</span>
                   </div>
 
                   {vendorItems.map(item => (
@@ -288,7 +289,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                         </div>
                         <button
                           onClick={() => handleQuantityChange(item.product._id, 0)}
-                          style={{ color: '#007185', fontSize: 11, marginTop: 8, display: 'inline-flex', alignItems: 'center', gap: 3 }}
+                          style={{ color: '#455d46', fontSize: 11, marginTop: 8, display: 'inline-flex', alignItems: 'center', gap: 3 }}
                         >
                           <Trash2 size={12} /> Delete
                         </button>
@@ -383,10 +384,10 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
         <div className="amz-modal-backdrop" onClick={() => !isProcessing && setIsCheckoutOpen(false)} style={{ zIndex: 600 }}>
           <div className="amz-checkout-modal" onClick={e => e.stopPropagation()}>
             {/* Header */}
-            <div style={{ background: '#131921', color: '#fff', padding: '14px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ background: '#344534', color: '#fff', padding: '14px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <ShieldCheck size={20} color="#febd69" />
-                <span style={{ fontSize: 16, fontWeight: 700 }}>Amazon Secure Checkout</span>
+                <ShieldCheck size={20} color="#aa775e" />
+                <span style={{ fontSize: 16, fontWeight: 700 }}>Common Goods Secure Checkout</span>
               </div>
               {!isProcessing && (
                 <button onClick={() => setIsCheckoutOpen(false)} style={{ color: '#fff' }}><X size={20} /></button>
@@ -452,7 +453,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                   {!showAddressForm && (
                     <button
                       onClick={() => setShowAddressForm(true)}
-                      style={{ fontSize: 13, color: '#007185', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4, marginBottom: 20 }}
+                      style={{ fontSize: 13, color: '#455d46', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4, marginBottom: 20 }}
                     >
                       <Plus size={15} /> Add a new address
                     </button>

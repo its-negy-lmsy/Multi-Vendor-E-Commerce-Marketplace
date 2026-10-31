@@ -9,7 +9,7 @@ import {
   Heart,
   RotateCcw,
   ShieldCheck,
-  ShoppingCart,
+  ShoppingBag,
   Star,
   Store,
   Truck,
@@ -185,7 +185,7 @@ export const Storefront: React.FC<StorefrontProps> = ({
       tag: 'GREAT ARTISAN FESTIVAL · LIVE NOW',
       title: 'Handcrafted With Soul. Delivered With Pride.',
       desc: 'Discover authentic, small-batch treasures directly from verified Indian artisan studios. Free express delivery, zero middlemen markup, and guaranteed fair-trade commissions.',
-      bg: 'linear-gradient(rgba(19, 25, 33, 0.75), rgba(19, 25, 33, 0.85)), url(https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?auto=format&fit=crop&w=1600&q=80)',
+      bg: 'linear-gradient(rgba(36, 43, 35, 0.72), rgba(36, 43, 35, 0.85)), url(https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?auto=format&fit=crop&w=1600&q=80)',
       btnText: 'Shop Festival Deals',
       link: '#shop',
     },
@@ -193,7 +193,7 @@ export const Storefront: React.FC<StorefrontProps> = ({
       tag: 'MASTER CERAMICS & HOME DECOR',
       title: 'Architectural Ceramics & Tableware',
       desc: 'Wheel-thrown stoneware pour-overs, matte raw terracotta vessels, and spun brass accent lamps designed to age gracefully in your home.',
-      bg: 'linear-gradient(rgba(19, 25, 33, 0.75), rgba(19, 25, 33, 0.85)), url(https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=1600&q=80)',
+      bg: 'linear-gradient(rgba(36, 43, 35, 0.72), rgba(36, 43, 35, 0.85)), url(https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=1600&q=80)',
       btnText: 'Explore Ceramics',
       link: '#shop',
     },
@@ -201,7 +201,7 @@ export const Storefront: React.FC<StorefrontProps> = ({
       tag: 'EXPEDITION CARRY & HERITAGE LEATHER',
       title: 'Built For A Lifetime Of Journeys',
       desc: 'Paraffin waxed 18oz duck canvas, full-grain Italian Buttero card wallets, and skeletonized titanium EDC essentials.',
-      bg: 'linear-gradient(rgba(19, 25, 33, 0.75), rgba(19, 25, 33, 0.85)), url(https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=1600&q=80)',
+      bg: 'linear-gradient(rgba(36, 43, 35, 0.72), rgba(36, 43, 35, 0.85)), url(https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=1600&q=80)',
       btnText: 'View Leather & Bags',
       link: '#shop',
     },
@@ -209,7 +209,7 @@ export const Storefront: React.FC<StorefrontProps> = ({
       tag: 'ORGANIC WELLNESS & BOTANICALS',
       title: 'Pure Himalayan Botanicals & Artisan Tea',
       desc: 'Cold-pressed wildcrafted hemp seed serums, hand-poured Mysore sandalwood candles, and estate Nilgiri lavender tea in keepsake tins.',
-      bg: 'linear-gradient(rgba(19, 25, 33, 0.75), rgba(19, 25, 33, 0.85)), url(https://images.unsplash.com/photo-1597481499750-3e6b22637e12?auto=format&fit=crop&w=1600&q=80)',
+      bg: 'linear-gradient(rgba(36, 43, 35, 0.72), rgba(36, 43, 35, 0.85)), url(https://images.unsplash.com/photo-1597481499750-3e6b22637e12?auto=format&fit=crop&w=1600&q=80)',
       btnText: 'Discover Apothecary',
       link: '#shop',
     },
@@ -272,7 +272,7 @@ export const Storefront: React.FC<StorefrontProps> = ({
             </div>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
               <span className="amz-deal-badge">28% off</span>
-              <span style={{ color: '#cc0c39', fontSize: 12, fontWeight: 700 }}>Limited Time Deal</span>
+              <span style={{ color: '#aa775e', fontSize: 12, fontWeight: 700 }}>Limited Time Deal</span>
             </div>
             <div style={{ fontSize: 18, fontWeight: 700, color: '#0f1111', marginTop: 4 }}>
               ₹2,899 <span style={{ fontSize: 12, color: '#565959', textDecoration: 'line-through' }}>₹3,999</span>
@@ -347,9 +347,9 @@ export const Storefront: React.FC<StorefrontProps> = ({
               Sell your handcrafted pieces to millions of conscious buyers across India with automated split settlements, verified reviews, and just 10% platform fee.
             </p>
             <ul style={{ listStyle: 'none', display: 'grid', gap: 6, fontSize: 12, color: '#374151', marginBottom: 16 }}>
-              <li style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Check size={14} color="#007600" /> Direct Razorpay Route escrow</li>
-              <li style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Check size={14} color="#007600" /> Automated GST tax invoices</li>
-              <li style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Check size={14} color="#007600" /> Vendor fulfillment dashboard</li>
+              <li style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Check size={14} color="#455d46" /> Direct Razorpay Route escrow</li>
+              <li style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Check size={14} color="#455d46" /> Automated GST tax invoices</li>
+              <li style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Check size={14} color="#455d46" /> Vendor fulfillment dashboard</li>
             </ul>
           </div>
           <Link to="/vendor/dashboard" className="amz-btn-cart" style={{ textDecoration: 'none', textAlign: 'center' }}>
@@ -626,9 +626,9 @@ export const Storefront: React.FC<StorefrontProps> = ({
                   <article className="amz-product-card" key={product._id}>
                     {/* Badge */}
                     {isBestSeller ? (
-                      <span className="amz-badge-bestseller">#1 Best Seller</span>
+                      <span className="amz-badge-bestseller">Best Seller</span>
                     ) : isChoice ? (
-                      <span className="amz-badge-choice">Amazon's <span>Choice</span></span>
+                      <span className="amz-badge-choice">Artisan <span>Pick</span></span>
                     ) : null}
 
                     {/* Wishlist Heart */}
@@ -698,7 +698,7 @@ export const Storefront: React.FC<StorefrontProps> = ({
 
                     {/* Prime / Delivery */}
                     <div className="amz-prime-line">
-                      <span className="amz-prime-logo">prime</span>
+                      <span className="amz-prime-logo">✦ Express</span>
                       FREE delivery by <b>Tomorrow, 2 PM</b> to {deliveryPincode}
                     </div>
 
@@ -709,7 +709,7 @@ export const Storefront: React.FC<StorefrontProps> = ({
                       </div>
                     )}
                     {product.stock <= 0 && (
-                      <div className="amz-stock-urgency" style={{ color: '#b12704' }}>
+                      <div className="amz-stock-urgency" style={{ color: '#a63e32' }}>
                         Currently out of stock.
                       </div>
                     )}
@@ -721,7 +721,7 @@ export const Storefront: React.FC<StorefrontProps> = ({
                         onClick={e => handleQuickAdd(e, product._id, product.name)}
                         disabled={product.stock <= 0}
                       >
-                        <ShoppingCart size={15} /> Add to Cart
+                        <ShoppingBag size={15} /> Add to Bag
                       </button>
                       <button
                         className="amz-btn-buy"
@@ -740,45 +740,45 @@ export const Storefront: React.FC<StorefrontProps> = ({
       </section>
 
       {/* 5. Footer */}
-      <footer style={{ background: '#232f3e', color: '#dddddd', padding: '40px 20px', marginTop: 40 }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 32, fontSize: 13 }}>
+      <footer style={{ background: '#1e261e', color: '#dddddd', padding: '50px 24px 30px', marginTop: 40, borderTop: '1px solid #2d3b2e' }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 36, fontSize: 13 }}>
           <div>
-            <h4 style={{ color: '#ffffff', marginBottom: 12, fontSize: 15 }}>Get to Know Us</h4>
-            <ul style={{ listStyle: 'none', display: 'grid', gap: 8 }}>
-              <li><a href="#shop" style={{ color: '#dddddd' }}>About Common Goods</a></li>
-              <li><a href="#shop" style={{ color: '#dddddd' }}>Artisan Provenance</a></li>
-              <li><a href="#shop" style={{ color: '#dddddd' }}>Fair Trade Standards</a></li>
-              <li><a href="#shop" style={{ color: '#dddddd' }}>Press & Media</a></li>
+            <h4 style={{ color: '#f5f2e8', fontFamily: "'Playfair Display', serif", marginBottom: 14, fontSize: 16 }}>Get to Know Us</h4>
+            <ul style={{ listStyle: 'none', display: 'grid', gap: 9 }}>
+              <li><a href="#shop" style={{ color: '#a6aba0' }}>About Common Goods</a></li>
+              <li><a href="#shop" style={{ color: '#a6aba0' }}>Artisan Provenance</a></li>
+              <li><a href="#shop" style={{ color: '#a6aba0' }}>Fair Trade Standards</a></li>
+              <li><a href="#shop" style={{ color: '#a6aba0' }}>Press & Media</a></li>
             </ul>
           </div>
           <div>
-            <h4 style={{ color: '#ffffff', marginBottom: 12, fontSize: 15 }}>Connect with Us</h4>
-            <ul style={{ listStyle: 'none', display: 'grid', gap: 8 }}>
-              <li><a href="#shop" style={{ color: '#dddddd' }}>Instagram</a></li>
-              <li><a href="#shop" style={{ color: '#dddddd' }}>Artisan Stories</a></li>
-              <li><a href="#shop" style={{ color: '#dddddd' }}>Studio Tours</a></li>
+            <h4 style={{ color: '#f5f2e8', fontFamily: "'Playfair Display', serif", marginBottom: 14, fontSize: 16 }}>Connect with Us</h4>
+            <ul style={{ listStyle: 'none', display: 'grid', gap: 9 }}>
+              <li><a href="#shop" style={{ color: '#a6aba0' }}>Instagram</a></li>
+              <li><a href="#shop" style={{ color: '#a6aba0' }}>Artisan Stories</a></li>
+              <li><a href="#shop" style={{ color: '#a6aba0' }}>Studio Tours</a></li>
             </ul>
           </div>
           <div>
-            <h4 style={{ color: '#ffffff', marginBottom: 12, fontSize: 15 }}>Make Money with Us</h4>
-            <ul style={{ listStyle: 'none', display: 'grid', gap: 8 }}>
-              <li><Link to="/vendor/dashboard" style={{ color: '#dddddd' }}>Sell on Marketplace</Link></li>
-              <li><Link to="/vendor/dashboard" style={{ color: '#dddddd' }}>Supply to Prime Express</Link></li>
-              <li><Link to="/vendor/dashboard" style={{ color: '#dddddd' }}>Artisan Acceleration Program</Link></li>
+            <h4 style={{ color: '#f5f2e8', fontFamily: "'Playfair Display', serif", marginBottom: 14, fontSize: 16 }}>Make Money with Us</h4>
+            <ul style={{ listStyle: 'none', display: 'grid', gap: 9 }}>
+              <li><Link to="/vendor/dashboard" style={{ color: '#a6aba0' }}>Sell on Marketplace</Link></li>
+              <li><Link to="/vendor/dashboard" style={{ color: '#a6aba0' }}>Supply to Artisan Express</Link></li>
+              <li><Link to="/vendor/dashboard" style={{ color: '#a6aba0' }}>Artisan Acceleration Program</Link></li>
             </ul>
           </div>
           <div>
-            <h4 style={{ color: '#ffffff', marginBottom: 12, fontSize: 15 }}>Let Us Help You</h4>
-            <ul style={{ listStyle: 'none', display: 'grid', gap: 8 }}>
-              <li><Link to="/orders" style={{ color: '#dddddd' }}>Your Orders & Tracking</Link></li>
-              <li><a href="#shop" style={{ color: '#dddddd' }}>Returns & Replacements</a></li>
-              <li><a href="#shop" style={{ color: '#dddddd' }}>A-to-Z Guarantee</a></li>
-              <li><a href="#shop" style={{ color: '#dddddd' }}>Help & Customer Service</a></li>
+            <h4 style={{ color: '#f5f2e8', fontFamily: "'Playfair Display', serif", marginBottom: 14, fontSize: 16 }}>Let Us Help You</h4>
+            <ul style={{ listStyle: 'none', display: 'grid', gap: 9 }}>
+              <li><Link to="/orders" style={{ color: '#a6aba0' }}>Your Orders & Tracking</Link></li>
+              <li><a href="#shop" style={{ color: '#a6aba0' }}>Returns & Replacements</a></li>
+              <li><a href="#shop" style={{ color: '#a6aba0' }}>Artisan Guarantee</a></li>
+              <li><a href="#shop" style={{ color: '#a6aba0' }}>Help & Customer Service</a></li>
             </ul>
           </div>
         </div>
-        <div style={{ borderTop: '1px solid #3a4553', marginTop: 32, paddingTop: 20, textAlign: 'center', fontSize: 12, color: '#999999' }}>
-          © 2026 Amazon Artisan Marketplace · Built for Internship Capstone Evaluation
+        <div style={{ borderTop: '1px solid #2d3b2e', maxWidth: 1200, margin: '40px auto 0', paddingTop: 24, textAlign: 'center', fontSize: 12, color: '#888f82' }}>
+          © 2026 Common Goods Artisanal Marketplace · Built for Internship Capstone Evaluation
         </div>
       </footer>
     </div>

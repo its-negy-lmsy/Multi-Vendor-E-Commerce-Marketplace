@@ -9,7 +9,8 @@ import {
   Package,
   Search,
   Shield,
-  ShoppingCart,
+  ShoppingBag,
+  Sparkles,
   Store,
   X,
   Zap,
@@ -116,14 +117,20 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   return (
     <>
-      {/* 1. Main Amazon Top Header */}
+      {/* 0. Top Editorial Announcement Bar */}
+      <div className="announcement">
+        <Sparkles size={13} />
+        <span>Complimentary Express Delivery on orders over ₹500 · Handcrafted with Soul</span>
+        <span className="announcement-link">
+          Special Launch: Use code <strong>WELCOME10</strong> for 10% off
+        </span>
+      </div>
+
+      {/* 1. Common Goods Artisanal Header with Amazon UX */}
       <header className="amz-header-top">
-        {/* Amazon Marketplace Logo */}
-        <Link to="/" className="amz-logo-box" aria-label="Amazon Marketplace Home">
-          <div className="amz-logo-text">
-            amazon<span>artisan</span>
-            <b className="amz-logo-dot">.in</b>
-          </div>
+        {/* Common Goods Wordmark */}
+        <Link to="/" className="wordmark" aria-label="Common Goods Home">
+          common<span>goods</span><i>.</i>
         </Link>
 
         {/* Deliver to Pin location selector */}
@@ -132,7 +139,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           onClick={onOpenPinModal}
           title="Click to change delivery pincode"
         >
-          <MapPin size={18} style={{ color: '#febd69', flexShrink: 0 }} />
+          <MapPin size={18} style={{ color: '#455d46', flexShrink: 0 }} />
           <div>
             <div className="amz-location-sub">
               Deliver to {user ? user.name.split(' ')[0] : 'Guest'}
@@ -160,7 +167,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <input
               type="text"
               className="amz-search-input"
-              placeholder="Search Amazon Marketplace, pottery, bags, tea..."
+              placeholder="Search handcrafted ceramics, leather, apothecary, paper..."
               value={searchTerm}
               onChange={e => {
                 setSearchTerm(e.target.value);
@@ -274,7 +281,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <div style={{ fontSize: 11, color: '#565959' }}>
                     New customer?{' '}
                     <span
-                      style={{ color: '#007185', cursor: 'pointer', fontWeight: 600 }}
+                      style={{ color: '#455d46', cursor: 'pointer', fontWeight: 600 }}
                       onClick={() => {
                         setAccountMenuOpen(false);
                         onOpenAuth('register');
@@ -332,7 +339,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <li>
                     <Link
                       to="/admin/dashboard"
-                      style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#99583d', fontWeight: 600 }}
+                      style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#aa775e', fontWeight: 600 }}
                       onClick={() => setAccountMenuOpen(false)}
                     >
                       <Shield size={15} /> Admin Command Center
@@ -350,7 +357,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                       alignItems: 'center',
                       gap: 8,
                       fontSize: 13,
-                      color: '#b12704',
+                      color: '#a63e32',
                       fontWeight: 600,
                       width: '100%',
                     }}
@@ -369,15 +376,15 @@ export const Navbar: React.FC<NavbarProps> = ({
           <span className="amz-nav-line2">& Orders</span>
         </Link>
 
-        {/* Amazon Shopping Cart */}
-        <button className="amz-cart-btn" onClick={onOpenCart} aria-label="Open Shopping Cart">
-          <ShoppingCart size={28} />
+        {/* Shopping Bag / Cart */}
+        <button className="amz-cart-btn" onClick={onOpenCart} aria-label="Open Shopping Bag">
+          <ShoppingBag size={22} style={{ color: '#242b23' }} />
           <span className="amz-cart-count-badge">{cartCount}</span>
-          <span className="amz-cart-label">Cart</span>
+          <span className="amz-cart-label">Bag</span>
         </button>
       </header>
 
-      {/* 2. Amazon Sub-Navigation Bar */}
+      {/* 2. Artisanal Sub-Navigation Bar */}
       <nav className="amz-subnav">
         <div className="amz-subnav-links">
           <Link to="/" className="amz-subnav-link">
@@ -396,7 +403,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <Package size={14} /> Track Orders
           </Link>
           {user?.role === 'ADMIN' && (
-            <Link to="/admin/dashboard" className="amz-subnav-link" style={{ color: '#febd69', fontWeight: 700 }}>
+            <Link to="/admin/dashboard" className="amz-subnav-link" style={{ color: '#c68a4c', fontWeight: 700 }}>
               <Shield size={14} /> Admin Command
             </Link>
           )}

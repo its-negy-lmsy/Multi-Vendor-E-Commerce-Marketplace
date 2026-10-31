@@ -129,8 +129,8 @@ export function App() {
 
       {/* Global Toast */}
       {toastNotice && (
-        <div className="toast" role="status" style={{ background: '#131921', color: '#fff', borderLeft: '4px solid #febd69' }}>
-          <Check size={16} color="#febd69" />
+        <div className="toast" role="status" style={{ background: '#344534', color: '#fff', borderLeft: '4px solid #aa775e' }}>
+          <Check size={16} color="#aa775e" />
           <span>{toastNotice}</span>
           <button onClick={() => setToastNotice('')} aria-label="Dismiss">
             <X size={14} />

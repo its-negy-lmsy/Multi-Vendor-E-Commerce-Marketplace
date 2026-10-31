@@ -46,7 +46,7 @@ export const PincodeModal: React.FC<PincodeModalProps> = ({
       <div className="amz-checkout-modal" style={{ maxWidth: 440, padding: 24 }} onClick={e => e.stopPropagation()}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <MapPin size={20} color="#febd69" />
+            <MapPin size={20} color="#455d46" />
             <h3 style={{ fontSize: 18, fontWeight: 700 }}>Choose your delivery location</h3>
           </div>
           <button onClick={onClose}><X size={20} /></button>

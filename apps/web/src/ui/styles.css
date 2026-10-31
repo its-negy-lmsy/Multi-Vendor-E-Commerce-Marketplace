@@ -1,37 +1,55 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;1,600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500;1,600&display=swap');
 
 :root {
-  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  color: #0f1111;
-  background-color: #eaeded;
+  font-family: 'DM Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: #242b23;
+  background-color: #f8f7f3;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 
-  /* Amazon Palette */
-  --amz-nav-dark: #131921;
-  --amz-nav-sub: #232f3e;
-  --amz-nav-hover: #37475a;
-  --amz-yellow: #ffd814;
-  --amz-yellow-border: #fcd200;
-  --amz-yellow-hover: #f7ca00;
-  --amz-orange: #ffa41c;
-  --amz-orange-border: #ff8f00;
-  --amz-orange-hover: #fa8900;
-  --amz-search-btn: #febd69;
-  --amz-search-hover: #f3a847;
-  --amz-link: #007185;
-  --amz-link-hover: #c7511f;
-  --amz-price-red: #b12704;
-  --amz-deal-red: #cc0c39;
-  --amz-green: #007600;
-  --amz-star-gold: #de7921;
-  --amz-choice-teal: #002f36;
-  --amz-border: #d5d9d9;
-  --amz-bg: #eaeded;
-  --amz-surface: #ffffff;
-  --amz-text-muted: #565959;
+  /* Common Goods Artisanal Theme Tokens */
+  --cream: #f8f7f3;
+  --cream-surface: #ffffff;
+  --cream-card: #fcfbf9;
+  --cream-tint: #f5f3ec;
+  --ink: #242b23;
+  --ink-soft: #384137;
+  --muted: #72766d;
+  --muted-light: #8e9287;
+  --line: #e7e4db;
+  --line-strong: #dcd9cf;
+
+  /* Primary Brand: Deep Forest Moss */
+  --moss: #455d46;
+  --moss-hover: #2f4432;
+  --moss-dark: #344534;
+  --moss-deep: #253426;
+  --moss-tint: #eaf0e8;
+  --moss-border: #3d523e;
+
+  /* Secondary Accent: Warm Terracotta / Copper */
+  --terracotta: #aa775e;
+  --terracotta-hover: #8d604e;
+  --terracotta-dot: #b77b57;
+  --terracotta-tint: #f9f1ec;
+  --terracotta-border: #996850;
+
+  /* Functional Accents */
+  --gold: #c68a4c;
+  --gold-star: #d48b38;
+  --green-stock: #2e6338;
+  --red-urgency: #a63e32;
+  --red-deal: #a63e32;
+
+  /* Amazon UX Dimensions & Layout Constants */
+  --amz-bg: var(--cream);
+  --amz-surface: var(--cream-surface);
+  --amz-border: var(--line);
+  --amz-text-muted: var(--muted);
+  --amz-link: var(--moss);
+  --amz-link-hover: var(--terracotta);
 }
 
 * {
@@ -41,19 +59,20 @@
 }
 
 body {
-  background-color: var(--amz-bg);
-  color: #0f1111;
+  background-color: var(--cream);
+  color: var(--ink);
   font-size: 14px;
-  line-height: 1.4;
+  line-height: 1.45;
   min-width: 320px;
 }
 
 a {
-  color: var(--amz-link);
+  color: var(--moss);
   text-decoration: none;
+  transition: color 0.15s ease;
 }
 a:hover {
-  color: var(--amz-link-hover);
+  color: var(--terracotta);
   text-decoration: underline;
 }
 
@@ -74,153 +93,208 @@ input, select, textarea {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: var(--amz-bg);
+  background: var(--cream);
 }
 
 /* =========================================================
-   AMAZON HEADER & NAVIGATION
+   TOP ANNOUNCEMENT BANNER
    ========================================================= */
-.amz-header-top {
-  background-color: var(--amz-nav-dark);
-  color: #ffffff;
+.announcement {
+  height: 36px;
+  background: var(--moss-dark);
+  color: #f5f2e8;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 8px 16px;
+  justify-content: center;
+  gap: 8px;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  position: relative;
+  z-index: 101;
+  padding: 0 16px;
+}
+.announcement strong {
+  color: #ffffff;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+.announcement-link {
+  position: absolute;
+  right: max(calc((100vw - 1480px) / 2), 24px);
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  color: #d6d6c8;
+  font-size: 11px;
+  text-decoration: none;
+}
+.announcement-link:hover {
+  color: #ffffff;
+  text-decoration: underline;
+}
+
+/* =========================================================
+   COMMON GOODS OMNI-HEADER (Amazon UX with Artisanal Theme)
+   ========================================================= */
+.amz-header-top {
+  background-color: #f8f7f3;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 24px;
   position: sticky;
   top: 0;
   z-index: 100;
-  height: 60px;
+  height: 72px;
+  border-bottom: 1px solid var(--line);
+  box-shadow: 0 2px 10px rgba(36, 43, 35, 0.04);
 }
 
+/* Brand Wordmark */
 .amz-logo-box {
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 4px 8px;
-  border-radius: 2px;
+  padding: 4px 6px;
+  border-radius: 4px;
   border: 1px solid transparent;
-  color: #ffffff;
+  color: var(--ink);
   text-decoration: none !important;
+  transition: all 0.15s ease;
 }
 .amz-logo-box:hover {
-  border-color: #ffffff;
+  background: rgba(0, 0, 0, 0.03);
 }
-.amz-logo-text {
-  font-size: 22px;
-  font-weight: 800;
-  letter-spacing: -0.8px;
-  display: flex;
-  align-items: baseline;
-  line-height: 1;
-}
-.amz-logo-text span {
-  color: #febd69;
-  font-weight: 500;
-  font-size: 15px;
-  margin-left: 2px;
-}
-.amz-logo-dot {
-  color: #ff9900;
+
+.wordmark {
+  font-family: 'DM Sans', sans-serif;
   font-size: 24px;
+  letter-spacing: -1.2px;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1;
+  display: inline-flex;
+  align-items: baseline;
+}
+.wordmark span {
+  font-weight: 400;
+  color: var(--ink);
+}
+.wordmark i {
+  font-style: normal;
+  color: var(--terracotta-dot);
+  font-weight: 700;
+  font-size: 28px;
+  line-height: 0;
+  margin-left: 1px;
 }
 
 /* Delivery Location Button */
 .amz-location-btn {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 8px;
-  border-radius: 2px;
-  border: 1px solid transparent;
-  color: #ffffff;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: #ffffff;
+  color: var(--ink);
   text-align: left;
+  transition: all 0.15s ease;
 }
 .amz-location-btn:hover {
-  border-color: #ffffff;
+  border-color: var(--moss);
+  background: #f4f6f3;
 }
 .amz-location-sub {
   font-size: 11px;
-  color: #cccccc;
+  color: var(--muted);
   line-height: 1.1;
 }
 .amz-location-main {
   font-size: 13px;
   font-weight: 700;
   line-height: 1.2;
+  color: var(--ink);
   white-space: nowrap;
 }
 
-/* Search Box Container */
+/* Omnisearch Form */
 .amz-search-form {
   flex: 1;
   display: flex;
-  height: 40px;
-  border-radius: 4px;
+  height: 42px;
+  border-radius: 6px;
   background: #ffffff;
   position: relative;
-  border: 2px solid transparent;
-  transition: border-color 0.15s;
+  border: 1px solid var(--line-strong);
+  transition: all 0.15s ease;
 }
 .amz-search-form:focus-within {
-  border-color: #ff9900;
-  box-shadow: 0 0 0 2px rgba(255, 153, 0, 0.4);
+  border-color: var(--moss);
+  box-shadow: 0 0 0 3px rgba(69, 93, 70, 0.18);
 }
 
 .amz-search-cat {
-  background: #f3f3f3;
+  background: #f5f3ec;
   border: none;
-  border-right: 1px solid #cdcdcd;
-  border-top-left-radius: 4px;
-  border-bottom-left-radius: 4px;
-  padding: 0 10px;
+  border-right: 1px solid var(--line-strong);
+  border-top-left-radius: 5px;
+  border-bottom-left-radius: 5px;
+  padding: 0 12px;
   font-size: 12px;
-  color: #555555;
+  font-weight: 500;
+  color: var(--ink-soft);
   cursor: pointer;
   outline: none;
-  max-width: 130px;
+  max-width: 140px;
+  transition: background 0.15s ease;
 }
 .amz-search-cat:hover {
-  background: #dadada;
-  color: #111111;
+  background: #ede9df;
+  color: var(--ink);
 }
 
 .amz-search-input {
   flex: 1;
   border: none;
-  padding: 0 12px;
-  font-size: 14px;
-  color: #111111;
+  padding: 0 14px;
+  font-size: 13.5px;
+  color: var(--ink);
   outline: none;
   background: transparent;
   min-width: 0;
 }
+.amz-search-input::placeholder {
+  color: var(--muted-light);
+}
 
 .amz-search-submit {
-  width: 45px;
-  background: var(--amz-search-btn);
+  width: 46px;
+  background: var(--moss);
   border: none;
-  border-top-right-radius: 4px;
-  border-bottom-right-radius: 4px;
+  border-top-right-radius: 5px;
+  border-bottom-right-radius: 5px;
   display: grid;
   place-items: center;
-  color: #111111;
-  transition: background 0.15s;
+  color: #ffffff;
+  transition: background 0.15s ease;
 }
 .amz-search-submit:hover {
-  background: var(--amz-search-hover);
+  background: var(--moss-hover);
 }
 
 /* Auto-Suggest Dropdown */
 .amz-suggest-dropdown {
   position: absolute;
-  top: 42px;
+  top: 46px;
   left: 0;
   right: 0;
   background: #ffffff;
-  border: 1px solid #cdcdcd;
-  border-radius: 4px;
-  box-shadow: 0 6px 18px rgba(0,0,0,0.2);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(36, 43, 35, 0.12);
   z-index: 200;
   max-height: 380px;
   overflow-y: auto;
@@ -229,93 +303,105 @@ input, select, textarea {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 8px 12px;
-  border-bottom: 1px solid #f0f0f0;
+  padding: 10px 14px;
+  border-bottom: 1px solid #f2eee5;
   cursor: pointer;
-  color: #111111;
+  color: var(--ink);
   text-decoration: none !important;
+  transition: background 0.12s;
 }
 .amz-suggest-item:hover {
-  background: #f7f7f7;
+  background: #f8f7f3;
 }
 .amz-suggest-item img {
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   object-fit: cover;
-  border-radius: 3px;
-  border: 1px solid #eee;
+  border-radius: 4px;
+  border: 1px solid var(--line);
 }
 
 /* Header Right Nav Items */
 .amz-nav-item {
-  padding: 4px 8px;
-  border-radius: 2px;
+  padding: 6px 12px;
+  border-radius: 6px;
   border: 1px solid transparent;
-  color: #ffffff;
+  color: var(--ink);
   text-decoration: none !important;
   display: flex;
   flex-direction: column;
   justify-content: center;
   position: relative;
   white-space: nowrap;
+  transition: all 0.15s ease;
 }
 .amz-nav-item:hover {
-  border-color: #ffffff;
+  background: #f0eee6;
+  border-color: var(--line);
 }
 .amz-nav-line1 {
   font-size: 11px;
-  color: #cccccc;
+  color: var(--muted);
   line-height: 1.1;
 }
 .amz-nav-line2 {
   font-size: 13px;
   font-weight: 700;
+  color: var(--ink);
   line-height: 1.2;
 }
 
-/* Cart Button */
+/* Cart / Bag Button */
 .amz-cart-btn {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 4px 10px;
-  border-radius: 2px;
-  border: 1px solid transparent;
-  color: #ffffff;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: #ffffff;
+  color: var(--ink);
   text-decoration: none !important;
   position: relative;
+  transition: all 0.15s ease;
 }
 .amz-cart-btn:hover {
-  border-color: #ffffff;
+  background: #f4f6f3;
+  border-color: var(--moss);
 }
 .amz-cart-count-badge {
-  position: absolute;
-  left: 17px;
-  top: 2px;
-  color: #f08804;
-  font-weight: 800;
-  font-size: 13px;
-  min-width: 14px;
-  text-align: center;
+  background: var(--terracotta);
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 11px;
+  min-width: 20px;
+  height: 20px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  padding: 0 4px;
 }
 .amz-cart-label {
   font-size: 13px;
   font-weight: 700;
-  margin-top: 10px;
+  color: var(--ink);
 }
 
-/* Sub Navigation Bar */
+/* =========================================================
+   SUB-NAVIGATION BAR (Deep Forest Artisanal Strip)
+   ========================================================= */
 .amz-subnav {
-  background-color: var(--amz-nav-sub);
-  color: #ffffff;
+  background-color: var(--moss-dark);
+  color: #f5f2e8;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 16px;
-  height: 39px;
+  padding: 0 24px;
+  height: 42px;
   font-size: 13px;
   gap: 16px;
   overflow-x: auto;
+  border-bottom: 1px solid #283628;
 }
 .amz-subnav-links {
   display: flex;
@@ -323,75 +409,78 @@ input, select, textarea {
   gap: 4px;
 }
 .amz-subnav-link {
-  color: #ffffff;
-  padding: 6px 9px;
-  border-radius: 2px;
+  color: #e5e3d8;
+  padding: 6px 12px;
+  border-radius: 4px;
   border: 1px solid transparent;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   white-space: nowrap;
   font-weight: 500;
   text-decoration: none !important;
+  transition: all 0.15s ease;
 }
 .amz-subnav-link:hover {
-  border-color: #ffffff;
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
 }
 .amz-subnav-link.active {
   font-weight: 700;
-  border-bottom: 2px solid #febd69;
+  color: #ffffff;
+  border-bottom: 2px solid var(--terracotta-dot);
 }
 
-/* Quick Demo Switcher Bar */
+/* Demo Switcher in Subnav */
 .amz-demo-switcher {
   display: flex;
   align-items: center;
-  gap: 8px;
-  background: rgba(255, 255, 255, 0.12);
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.08);
   padding: 3px 8px;
   border-radius: 4px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.15);
 }
 .amz-demo-label {
   font-size: 11px;
   font-weight: 600;
-  color: #febd69;
+  color: #d6d3c7;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
   display: flex;
   align-items: center;
-  gap: 3px;
+  gap: 4px;
 }
 .amz-demo-pill {
   font-size: 11px;
   font-weight: 600;
-  padding: 3px 8px;
+  padding: 4px 9px;
   border-radius: 3px;
-  background: rgba(255, 255, 255, 0.15);
-  color: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  transition: all 0.15s;
+  background: rgba(255, 255, 255, 0.12);
+  color: #f5f2e8;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.15s ease;
 }
 .amz-demo-pill:hover {
-  background: #febd69;
-  color: #111111;
-  border-color: #febd69;
+  background: var(--terracotta);
+  color: #ffffff;
+  border-color: var(--terracotta);
 }
 .amz-demo-pill.active {
-  background: #febd69;
-  color: #111111;
-  border-color: #febd69;
+  background: var(--terracotta);
+  color: #ffffff;
+  border-color: var(--terracotta-dot);
   font-weight: 700;
 }
 
 /* =========================================================
-   HOMEPAGE & STOREFRONT HERO CAROUSEL
+   HERO PROMOTIONAL CAROUSEL
    ========================================================= */
 .amz-hero-carousel {
   position: relative;
-  height: 380px;
+  height: 400px;
   overflow: hidden;
-  background: linear-gradient(180deg, #1f2b37 0%, #eaeded 100%);
+  background: linear-gradient(135deg, #2d3b2e 0%, #3e5340 100%);
 }
 .amz-slide {
   position: absolute;
@@ -411,197 +500,226 @@ input, select, textarea {
   pointer-events: auto;
 }
 .amz-slide-content {
-  max-width: 540px;
+  max-width: 580px;
   z-index: 2;
   color: #ffffff;
-  text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.6);
 }
 .amz-slide-tag {
   display: inline-block;
-  background: #cc0c39;
+  background: var(--terracotta);
   color: #ffffff;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
-  padding: 4px 8px;
-  border-radius: 2px;
+  padding: 4px 10px;
+  border-radius: 3px;
   margin-bottom: 12px;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.08em;
 }
 .amz-slide-title {
-  font-size: 38px;
-  font-weight: 800;
-  line-height: 1.15;
-  margin-bottom: 10px;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 42px;
+  font-weight: 600;
+  line-height: 1.12;
+  letter-spacing: -0.5px;
+  margin-bottom: 12px;
 }
 .amz-slide-desc {
   font-size: 15px;
-  line-height: 1.5;
-  margin-bottom: 20px;
-  color: #e5e7eb;
+  line-height: 1.6;
+  margin-bottom: 22px;
+  color: #f0eee6;
 }
 .amz-slide-btn {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  background: var(--amz-yellow);
-  color: #0f1111;
-  font-weight: 700;
-  font-size: 14px;
-  padding: 10px 20px;
+  gap: 10px;
+  background: var(--moss);
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 13.5px;
+  padding: 11px 22px;
   border-radius: 6px;
-  box-shadow: 0 2px 5px rgba(213, 217, 217, 0.5);
-  border: 1px solid var(--amz-yellow-border);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--moss-border);
   text-decoration: none !important;
+  transition: all 0.2s ease;
 }
 .amz-slide-btn:hover {
-  background: var(--amz-yellow-hover);
+  background: var(--moss-hover);
+  transform: translateY(-1px);
 }
 
 .amz-carousel-arrow {
   position: absolute;
-  top: 140px;
-  background: rgba(255, 255, 255, 0.4);
-  color: #0f1111;
+  top: 150px;
+  background: rgba(255, 255, 255, 0.45);
+  color: var(--ink);
   width: 44px;
-  height: 60px;
+  height: 64px;
   display: grid;
   place-items: center;
   cursor: pointer;
   z-index: 10;
   border-radius: 4px;
-  transition: background 0.15s;
+  transition: all 0.15s ease;
 }
 .amz-carousel-arrow:hover {
-  background: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.9);
 }
-.amz-arrow-prev { left: 10px; }
-.amz-arrow-next { right: 10px; }
+.amz-arrow-prev { left: 16px; }
+.amz-arrow-next { right: 16px; }
 
-/* Amazon Quad Cards Widget (Overlap onto Carousel) */
+/* =========================================================
+   QUAD FEATURE CARDS (Artisanal Overlap onto Hero)
+   ========================================================= */
 .amz-quad-container {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 20px;
+  gap: 24px;
   max-width: 1480px;
-  margin: -140px auto 30px;
-  padding: 0 20px;
+  margin: -130px auto 36px;
+  padding: 0 24px;
   position: relative;
   z-index: 5;
 }
 
 .amz-quad-card {
   background: #ffffff;
-  padding: 20px;
+  padding: 24px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  border-radius: 4px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
-  min-height: 360px;
+  border-radius: 8px;
+  box-shadow: 0 3px 12px rgba(36, 43, 35, 0.08);
+  border: 1px solid var(--line);
+  min-height: 380px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.amz-quad-card:hover {
+  box-shadow: 0 6px 20px rgba(36, 43, 35, 0.12);
 }
 .amz-quad-title {
-  font-size: 18px;
-  font-weight: 700;
-  color: #0f1111;
-  margin-bottom: 12px;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 14px;
+  letter-spacing: -0.3px;
 }
 .amz-quad-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 .amz-quad-subitem {
   cursor: pointer;
 }
 .amz-quad-subitem img {
   width: 100%;
-  height: 95px;
+  height: 100px;
   object-fit: cover;
-  border-radius: 3px;
+  border-radius: 4px;
   display: block;
-  background: #f7f7f7;
+  background: #f7f5ed;
+  border: 1px solid var(--line);
+  transition: transform 0.2s;
+}
+.amz-quad-subitem:hover img {
+  transform: scale(1.03);
 }
 .amz-quad-subitem span {
   font-size: 12px;
-  color: #0f1111;
+  font-weight: 500;
+  color: var(--ink);
   display: block;
-  margin-top: 4px;
+  margin-top: 5px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .amz-quad-link {
   font-size: 13px;
-  color: var(--amz-link);
-  font-weight: 500;
+  color: var(--moss);
+  font-weight: 600;
   cursor: pointer;
+  text-decoration: none !important;
+  display: inline-block;
+  margin-top: 8px;
+  transition: color 0.15s;
+}
+.amz-quad-link:hover {
+  color: var(--terracotta);
 }
 
-/* Amazon Trust Ribbon */
+/* =========================================================
+   TRUST & ARTISAN PROVENANCE RIBBON
+   ========================================================= */
 .amz-trust-ribbon {
   background: #ffffff;
-  border-top: 1px solid var(--amz-border);
-  border-bottom: 1px solid var(--amz-border);
-  padding: 16px 24px;
-  margin-bottom: 24px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  padding: 18px 24px;
+  margin-bottom: 28px;
 }
 .amz-trust-inner {
   max-width: 1440px;
   margin: 0 auto;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 20px;
+  gap: 24px;
 }
 .amz-trust-item {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
 }
 .amz-trust-icon {
-  width: 40px;
-  height: 40px;
+  width: 42px;
+  height: 42px;
   border-radius: 50%;
-  background: #f0f7f7;
-  color: #007185;
+  background: var(--moss-tint);
+  color: var(--moss);
   display: grid;
   place-items: center;
   flex-shrink: 0;
 }
 .amz-trust-bold {
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 700;
-  color: #0f1111;
+  color: var(--ink);
 }
 .amz-trust-sub {
-  font-size: 11px;
-  color: #565959;
+  font-size: 11.5px;
+  color: var(--muted);
 }
 
 /* =========================================================
-   TWO-COLUMN AMAZON SEARCH / SHOP LAYOUT
+   TWO-COLUMN SEARCH / SHOP LAYOUT
    ========================================================= */
 .amz-shop-layout {
   max-width: 1520px;
-  margin: 0 auto 50px;
-  padding: 0 20px;
+  margin: 0 auto 60px;
+  padding: 0 24px;
   display: grid;
-  grid-template-columns: 240px 1fr;
-  gap: 24px;
+  grid-template-columns: 250px 1fr;
+  gap: 28px;
   align-items: start;
 }
 
 /* Left Sidebar Filter */
 .amz-sidebar {
   background: #ffffff;
-  border: 1px solid var(--amz-border);
-  border-radius: 6px;
-  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(36, 43, 35, 0.04);
 }
 .amz-filter-group {
-  margin-bottom: 20px;
-  padding-bottom: 18px;
-  border-bottom: 1px solid #eaeded;
+  margin-bottom: 22px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #f0ede5;
 }
 .amz-filter-group:last-child {
   border-bottom: none;
@@ -609,63 +727,74 @@ input, select, textarea {
   padding-bottom: 0;
 }
 .amz-filter-heading {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
-  color: #0f1111;
-  margin-bottom: 10px;
+  color: var(--ink);
+  margin-bottom: 12px;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.06em;
 }
 .amz-filter-list {
   list-style: none;
   display: grid;
-  gap: 6px;
+  gap: 8px;
 }
 .amz-filter-item {
   font-size: 13px;
-  color: #0f1111;
+  color: var(--ink-soft);
   display: flex;
   align-items: center;
   justify-content: space-between;
   cursor: pointer;
   padding: 3px 0;
+  transition: color 0.15s;
 }
 .amz-filter-item:hover {
-  color: var(--amz-link-hover);
+  color: var(--moss);
 }
 .amz-filter-item.active {
   font-weight: 700;
-  color: #c7511f;
+  color: var(--terracotta);
 }
 .amz-filter-count {
   font-size: 11px;
-  color: #767676;
+  color: var(--muted-light);
 }
 
 /* Price Range Inputs */
 .amz-price-inputs {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-top: 8px;
+  gap: 8px;
+  margin-top: 10px;
 }
 .amz-price-input {
-  width: 68px;
-  padding: 5px 6px;
-  border: 1px solid #888c8c;
-  border-radius: 3px;
-  font-size: 12px;
-}
-.amz-price-go {
-  padding: 5px 10px;
-  background: #ffffff;
-  border: 1px solid #888c8c;
+  width: 72px;
+  padding: 6px 8px;
+  border: 1px solid var(--line-strong);
   border-radius: 4px;
   font-size: 12px;
+  color: var(--ink);
+}
+.amz-price-input:focus {
+  outline: none;
+  border-color: var(--moss);
+}
+.amz-price-go {
+  padding: 6px 12px;
+  background: var(--moss-tint);
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--moss);
   cursor: pointer;
+  transition: all 0.15s ease;
 }
 .amz-price-go:hover {
-  background: #f7fafa;
+  background: var(--moss);
+  color: #ffffff;
+  border-color: var(--moss);
 }
 
 /* Results Area */
@@ -674,32 +803,38 @@ input, select, textarea {
 }
 .amz-results-bar {
   background: #ffffff;
-  border: 1px solid var(--amz-border);
-  border-radius: 4px;
-  padding: 10px 16px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 12px 18px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
   flex-wrap: wrap;
   gap: 12px;
+  box-shadow: 0 1px 4px rgba(36, 43, 35, 0.03);
 }
 .amz-results-count {
-  font-size: 13px;
-  color: #565959;
+  font-size: 13.5px;
+  color: var(--muted);
 }
 .amz-results-count b {
-  color: #0f1111;
+  color: var(--ink);
 }
 
 .amz-sort-select {
-  padding: 6px 10px;
-  border: 1px solid #888c8c;
-  border-radius: 4px;
-  background: #f0f2f2;
-  font-size: 12px;
-  color: #0f1111;
+  padding: 7px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  background: #f5f3ec;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--ink);
   cursor: pointer;
+  outline: none;
+}
+.amz-sort-select:focus {
+  border-color: var(--moss);
 }
 
 /* Active Filters Pills */
@@ -707,38 +842,45 @@ input, select, textarea {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 14px;
+  margin-bottom: 16px;
   flex-wrap: wrap;
 }
 .amz-chip {
   background: #ffffff;
-  border: 1px solid #888c8c;
-  border-radius: 12px;
-  padding: 3px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 16px;
+  padding: 4px 12px;
   font-size: 12px;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  color: #0f1111;
+  color: var(--ink);
 }
 .amz-chip button {
-  color: #767676;
+  color: var(--muted);
   font-weight: 700;
+}
+.amz-chip button:hover {
+  color: var(--red-urgency);
 }
 .amz-chip-clear {
   font-size: 12px;
-  color: var(--amz-link);
+  color: var(--moss);
+  font-weight: 600;
   cursor: pointer;
-  margin-left: 6px;
+  margin-left: 8px;
+}
+.amz-chip-clear:hover {
+  text-decoration: underline;
 }
 
 /* =========================================================
-   AMAZON PRODUCT CARDS GRID
+   PRODUCT CARDS GRID (Artisanal Amazon UX)
    ========================================================= */
 .amz-product-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 18px;
+  gap: 20px;
 }
 @media (min-width: 1400px) {
   .amz-product-grid {
@@ -748,89 +890,94 @@ input, select, textarea {
 
 .amz-product-card {
   background: #ffffff;
-  border: 1px solid var(--amz-border);
-  border-radius: 6px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
   display: flex;
   flex-direction: column;
   position: relative;
   overflow: hidden;
-  transition: transform 0.2s, box-shadow 0.2s;
-  padding: 14px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  padding: 16px;
+  box-shadow: 0 2px 6px rgba(36, 43, 35, 0.04);
 }
 .amz-product-card:hover {
-  box-shadow: 0 4px 14px rgba(0,0,0,0.1);
+  box-shadow: 0 6px 18px rgba(36, 43, 35, 0.1);
   transform: translateY(-2px);
 }
 
-/* Ribbon Badges */
+/* Ribbon Badges (Refined Common Goods Style) */
 .amz-badge-bestseller {
   position: absolute;
-  top: 10px;
+  top: 12px;
   left: 0;
-  background: #e67a00;
+  background: var(--terracotta);
   color: #ffffff;
   font-size: 10px;
   font-weight: 700;
-  padding: 3px 8px;
-  letter-spacing: 0.04em;
+  padding: 3px 9px;
+  letter-spacing: 0.06em;
   z-index: 5;
-  box-shadow: 1px 2px 4px rgba(0,0,0,0.15);
+  box-shadow: 1px 2px 5px rgba(0, 0, 0, 0.15);
+  text-transform: uppercase;
 }
 .amz-badge-choice {
   position: absolute;
-  top: 10px;
+  top: 12px;
   left: 0;
-  background: #002f36;
+  background: var(--moss-dark);
   color: #ffffff;
   font-size: 10px;
   font-weight: 700;
-  padding: 3px 8px;
-  letter-spacing: 0.04em;
+  padding: 3px 9px;
+  letter-spacing: 0.06em;
   z-index: 5;
+  text-transform: uppercase;
 }
 .amz-badge-choice span {
-  color: #ff9900;
+  color: #febd69;
 }
 
 .amz-wishlist-heart {
   position: absolute;
-  top: 10px;
-  right: 10px;
-  background: rgba(255, 255, 255, 0.9);
-  border: 1px solid #d5d9d9;
+  top: 12px;
+  right: 12px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid var(--line);
   border-radius: 50%;
   width: 32px;
   height: 32px;
   display: grid;
   place-items: center;
-  color: #565959;
+  color: var(--muted);
   z-index: 5;
-  transition: color 0.15s, background 0.15s;
+  transition: all 0.15s ease;
 }
 .amz-wishlist-heart:hover {
-  color: #b12704;
+  color: var(--terracotta);
   background: #ffffff;
+  border-color: var(--terracotta);
 }
 .amz-wishlist-heart.active {
-  color: #b12704;
+  color: var(--terracotta);
+  border-color: var(--terracotta);
 }
 
 .amz-card-image-box {
   width: 100%;
   height: 220px;
-  background: #f8f8f8;
+  background: #f7f5ed;
   display: flex;
   align-items: center;
   justify-content: center;
   margin-bottom: 12px;
-  border-radius: 4px;
+  border-radius: 6px;
   overflow: hidden;
 }
 .amz-card-image-box img {
   max-width: 100%;
   max-height: 100%;
   object-fit: cover;
-  transition: transform 0.3s;
+  transition: transform 0.3s ease;
 }
 .amz-product-card:hover .amz-card-image-box img {
   transform: scale(1.04);
@@ -838,25 +985,26 @@ input, select, textarea {
 
 .amz-card-vendor {
   font-size: 11px;
-  color: #565959;
-  margin-bottom: 3px;
+  color: var(--muted);
+  margin-bottom: 4px;
   display: block;
+  font-weight: 500;
 }
 
 .amz-card-title {
-  font-size: 14px;
+  font-size: 14.5px;
   font-weight: 600;
-  color: #0f1111;
+  color: var(--ink);
   line-height: 1.35;
-  height: 38px;
+  height: 40px;
   overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
 }
 .amz-card-title:hover {
-  color: var(--amz-link-hover);
+  color: var(--moss);
 }
 
 /* Star Rating Row */
@@ -864,22 +1012,23 @@ input, select, textarea {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 .amz-stars {
   display: flex;
   align-items: center;
   gap: 2px;
-  color: var(--amz-star-gold);
+  color: var(--gold-star);
 }
 .amz-rating-num {
   font-size: 12px;
-  color: #007185;
+  color: var(--moss);
+  font-weight: 500;
 }
 .amz-bought-count {
   font-size: 11px;
-  color: #565959;
-  margin-bottom: 6px;
+  color: var(--muted);
+  margin-bottom: 8px;
 }
 
 /* Price Row */
@@ -887,102 +1036,123 @@ input, select, textarea {
   margin-bottom: 8px;
 }
 .amz-deal-badge {
-  background: #cc0c39;
+  background: var(--terracotta);
   color: #ffffff;
   font-size: 11px;
   font-weight: 700;
-  padding: 2px 6px;
-  border-radius: 2px;
+  padding: 2px 7px;
+  border-radius: 3px;
   margin-right: 6px;
 }
 .amz-discount-pct {
-  color: #cc0c39;
+  color: var(--red-urgency);
   font-size: 16px;
-  font-weight: 400;
+  font-weight: 500;
   margin-right: 6px;
 }
 .amz-price-current {
   font-size: 20px;
   font-weight: 700;
-  color: #0f1111;
+  color: var(--ink);
 }
 .amz-price-current sup {
   font-size: 12px;
 }
 .amz-price-mrp {
   font-size: 12px;
-  color: #565959;
+  color: var(--muted);
   margin-left: 6px;
 }
 .amz-price-mrp s {
   text-decoration: line-through;
 }
 
-/* Prime Delivery Strip */
+/* Prime / Express Delivery Strip */
 .amz-prime-line {
   font-size: 12px;
-  color: #0f1111;
-  margin-bottom: 4px;
+  color: var(--ink-soft);
+  margin-bottom: 6px;
 }
 .amz-prime-line b {
   font-weight: 700;
+  color: var(--ink);
 }
 .amz-prime-logo {
-  color: #00a8e1;
-  font-weight: 900;
+  color: var(--moss);
+  font-weight: 800;
   font-size: 12px;
-  font-style: italic;
+  letter-spacing: 0.04em;
   margin-right: 4px;
 }
 
 .amz-stock-urgency {
-  font-size: 11px;
-  color: #b12704;
+  font-size: 11.5px;
+  color: var(--red-urgency);
   font-weight: 600;
   margin-bottom: 12px;
 }
 
-/* Amazon Action Buttons */
+/* Amazon Action Buttons (Common Goods Palette) */
 .amz-card-actions {
   display: grid;
-  gap: 6px;
+  gap: 7px;
   margin-top: auto;
 }
+
 .amz-btn-cart {
   width: 100%;
-  background: var(--amz-yellow);
-  border: 1px solid var(--amz-yellow-border);
-  color: #0f1111;
+  background: var(--moss);
+  border: 1px solid var(--moss-border);
+  color: #ffffff;
   font-size: 13px;
-  font-weight: 500;
-  padding: 7px 12px;
+  font-weight: 600;
+  padding: 8px 14px;
   border-radius: 20px;
-  box-shadow: 0 2px 5px rgba(213, 217, 217, 0.5);
+  box-shadow: 0 2px 6px rgba(69, 93, 70, 0.2);
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
+  transition: all 0.15s ease;
 }
 .amz-btn-cart:hover {
-  background: var(--amz-yellow-hover);
+  background: var(--moss-hover);
+  border-color: #243527;
+  color: #ffffff;
 }
+.amz-btn-cart:disabled {
+  background: #c7cebe;
+  border-color: #bcc3b3;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
 .amz-btn-buy {
   width: 100%;
-  background: var(--amz-orange);
-  border: 1px solid var(--amz-orange-border);
-  color: #0f1111;
+  background: var(--terracotta);
+  border: 1px solid var(--terracotta-border);
+  color: #ffffff;
   font-size: 13px;
-  font-weight: 500;
-  padding: 7px 12px;
+  font-weight: 600;
+  padding: 8px 14px;
   border-radius: 20px;
-  box-shadow: 0 2px 5px rgba(213, 217, 217, 0.5);
+  box-shadow: 0 2px 6px rgba(170, 119, 94, 0.25);
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
+  transition: all 0.15s ease;
 }
 .amz-btn-buy:hover {
-  background: var(--amz-orange-hover);
+  background: var(--terracotta-hover);
+  border-color: #7b4f3b;
+  color: #ffffff;
+}
+.amz-btn-buy:disabled {
+  background: #dec7bd;
+  border-color: #d1b8ad;
+  cursor: not-allowed;
+  box-shadow: none;
 }
 
 /* =========================================================
@@ -991,54 +1161,55 @@ input, select, textarea {
 .amz-pdp-wrap {
   max-width: 1520px;
   margin: 0 auto;
-  padding: 16px 20px 60px;
+  padding: 20px 24px 70px;
 }
 .amz-breadcrumbs {
-  font-size: 12px;
-  color: #565959;
-  margin-bottom: 16px;
+  font-size: 12.5px;
+  color: var(--muted);
+  margin-bottom: 20px;
   display: flex;
   gap: 6px;
   align-items: center;
 }
 .amz-breadcrumbs a {
-  color: #565959;
+  color: var(--muted);
 }
 .amz-breadcrumbs a:hover {
-  color: #c7511f;
+  color: var(--moss);
 }
 
 .amz-pdp-grid {
   display: grid;
-  grid-template-columns: 460px 1fr 280px;
-  gap: 32px;
+  grid-template-columns: 480px 1fr 300px;
+  gap: 36px;
   align-items: start;
 }
 
 /* Gallery Column */
 .amz-pdp-gallery {
   display: flex;
-  gap: 12px;
+  gap: 14px;
   position: sticky;
-  top: 76px;
+  top: 92px;
 }
 .amz-pdp-thumbs {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 .amz-pdp-thumb {
-  width: 50px;
-  height: 50px;
-  border: 1px solid #d5d9d9;
-  border-radius: 4px;
+  width: 54px;
+  height: 54px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
   overflow: hidden;
   cursor: pointer;
-  background: #f8f8f8;
+  background: #f7f5ed;
+  transition: all 0.15s ease;
 }
 .amz-pdp-thumb.active {
-  border: 2px solid #e77600;
-  box-shadow: 0 0 3px rgba(228, 121, 17, 0.5);
+  border: 2px solid var(--moss);
+  box-shadow: 0 0 5px rgba(69, 93, 70, 0.4);
 }
 .amz-pdp-thumb img {
   width: 100%;
@@ -1047,14 +1218,15 @@ input, select, textarea {
 }
 .amz-pdp-main-img {
   flex: 1;
-  height: 480px;
-  border: 1px solid var(--amz-border);
-  border-radius: 6px;
+  height: 500px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
   overflow: hidden;
   background: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: 0 2px 8px rgba(36, 43, 35, 0.04);
 }
 .amz-pdp-main-img img {
   max-width: 100%;
@@ -1067,72 +1239,74 @@ input, select, textarea {
   min-width: 0;
 }
 .amz-pdp-brand {
-  font-size: 13px;
-  color: var(--amz-link);
-  font-weight: 500;
-  margin-bottom: 4px;
+  font-size: 13.5px;
+  color: var(--moss);
+  font-weight: 600;
+  margin-bottom: 6px;
   display: block;
 }
 .amz-pdp-title {
-  font-size: 24px;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 28px;
   font-weight: 600;
   line-height: 1.25;
-  color: #0f1111;
-  margin-bottom: 8px;
+  color: var(--ink);
+  margin-bottom: 10px;
+  letter-spacing: -0.4px;
 }
 .amz-pdp-ratings-line {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--amz-border);
-  margin-bottom: 16px;
+  gap: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 18px;
 }
 
 .amz-pdp-price-section {
-  padding-bottom: 16px;
-  border-bottom: 1px solid var(--amz-border);
-  margin-bottom: 16px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 18px;
 }
 .amz-pdp-price-row {
   display: flex;
   align-items: baseline;
-  gap: 8px;
+  gap: 10px;
 }
 .amz-pdp-current-price {
-  font-size: 28px;
-  font-weight: 600;
-  color: #0f1111;
+  font-size: 30px;
+  font-weight: 700;
+  color: var(--ink);
 }
 .amz-pdp-taxes {
   font-size: 12px;
-  color: #565959;
-  margin-top: 2px;
+  color: var(--muted);
+  margin-top: 3px;
 }
 .amz-pdp-emi {
   font-size: 13px;
-  color: #0f1111;
+  color: var(--ink-soft);
   margin-top: 6px;
 }
 
 /* Coupon Checkbox Box */
 .amz-clip-coupon-box {
-  background: #fcf8e3;
-  border: 1px solid #fbeed5;
-  border-radius: 4px;
-  padding: 10px 14px;
-  margin-top: 12px;
+  background: var(--cream-tint);
+  border: 1px dashed var(--line-strong);
+  border-radius: 6px;
+  padding: 12px 16px;
+  margin-top: 14px;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 .amz-coupon-badge {
-  background: var(--amz-green);
+  background: var(--moss);
   color: #ffffff;
   font-weight: 700;
   font-size: 11px;
-  padding: 2px 6px;
-  border-radius: 2px;
+  padding: 2px 7px;
+  border-radius: 3px;
 }
 
 /* Trust Icons Matrix */
@@ -1140,43 +1314,46 @@ input, select, textarea {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 12px;
-  padding: 16px 0;
-  border-bottom: 1px solid var(--amz-border);
-  margin-bottom: 16px;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 18px;
   text-align: center;
 }
 .amz-pdp-trust-col {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
 }
 .amz-pdp-trust-col svg {
-  color: #007185;
+  color: var(--moss);
 }
 .amz-pdp-trust-col span {
   font-size: 11px;
-  color: #007185;
+  font-weight: 500;
+  color: var(--ink-soft);
 }
 
 /* Bullet Points */
 .amz-pdp-bullets {
-  margin: 16px 0;
+  margin: 18px 0;
 }
 .amz-pdp-bullets-title {
-  font-size: 16px;
-  font-weight: 700;
-  margin-bottom: 8px;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 10px;
 }
 .amz-pdp-bullets ul {
   padding-left: 20px;
   display: grid;
-  gap: 6px;
+  gap: 8px;
 }
 .amz-pdp-bullets li {
-  font-size: 13px;
-  line-height: 1.5;
-  color: #0f1111;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--ink-soft);
 }
 
 /* Specs Table */
@@ -1186,81 +1363,92 @@ input, select, textarea {
   margin: 20px 0;
 }
 .amz-specs-table td {
-  padding: 8px 12px;
+  padding: 9px 14px;
   font-size: 13px;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--line);
 }
 .amz-specs-table td:first-child {
   font-weight: 600;
-  color: #565959;
+  color: var(--muted);
   width: 35%;
-  background: #fbfbfb;
+  background: #fbfaf6;
 }
 
 /* Right Buy Box Column */
 .amz-buybox {
   background: #ffffff;
-  border: 1px solid var(--amz-border);
+  border: 1px solid var(--line);
   border-radius: 8px;
-  padding: 18px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+  padding: 22px;
+  box-shadow: 0 4px 16px rgba(36, 43, 35, 0.06);
   position: sticky;
-  top: 76px;
+  top: 92px;
 }
 .amz-buybox-price {
-  font-size: 24px;
+  font-size: 26px;
   font-weight: 700;
-  color: #b12704;
+  color: var(--ink);
   margin-bottom: 8px;
 }
 .amz-buybox-delivery {
   font-size: 13px;
-  line-height: 1.4;
+  line-height: 1.5;
+  color: var(--ink-soft);
   margin-bottom: 12px;
 }
 .amz-buybox-location {
   display: flex;
   align-items: center;
-  gap: 4px;
-  font-size: 12px;
-  color: var(--amz-link);
-  margin-bottom: 12px;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--moss);
+  font-weight: 600;
+  margin-bottom: 14px;
   cursor: pointer;
 }
+.amz-buybox-location:hover {
+  text-decoration: underline;
+}
 .amz-buybox-stock {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 700;
-  color: var(--amz-green);
-  margin-bottom: 12px;
+  color: var(--green-stock);
+  margin-bottom: 14px;
 }
 .amz-buybox-stock.low {
-  color: #b12704;
+  color: var(--red-urgency);
 }
 
 .amz-buybox-qty {
-  margin-bottom: 16px;
+  margin-bottom: 18px;
 }
 .amz-buybox-qty label {
-  font-size: 12px;
-  margin-right: 6px;
+  font-size: 12.5px;
+  font-weight: 500;
+  margin-right: 8px;
+  color: var(--ink);
 }
 .amz-buybox-qty select {
-  padding: 4px 8px;
-  border: 1px solid #888c8c;
+  padding: 5px 10px;
+  border: 1px solid var(--line-strong);
   border-radius: 4px;
-  background: #f0f2f2;
+  background: #f5f3ec;
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .amz-buybox-meta {
   font-size: 12px;
-  color: #565959;
+  color: var(--muted);
   display: grid;
-  grid-template-columns: 80px 1fr;
-  row-gap: 4px;
-  margin: 16px 0;
+  grid-template-columns: 84px 1fr;
+  row-gap: 5px;
+  margin: 18px 0;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
 }
 .amz-buybox-meta b {
-  color: #0f1111;
+  color: var(--ink);
 }
 
 .amz-buybox-security {
@@ -1268,62 +1456,66 @@ input, select, textarea {
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  color: #565959;
-  margin-top: 14px;
+  color: var(--muted);
+  margin-top: 16px;
 }
 
 /* Frequently Bought Together Bundle */
 .amz-bundle-box {
   background: #ffffff;
-  border: 1px solid var(--amz-border);
-  border-radius: 6px;
-  padding: 20px;
-  margin: 32px 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 24px;
+  margin: 36px 0;
+  box-shadow: 0 2px 8px rgba(36, 43, 35, 0.04);
 }
 .amz-bundle-title {
-  font-size: 18px;
-  font-weight: 700;
-  margin-bottom: 14px;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 16px;
 }
 .amz-bundle-row {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 18px;
   flex-wrap: wrap;
 }
 .amz-bundle-item img {
-  width: 90px;
-  height: 90px;
+  width: 95px;
+  height: 95px;
   object-fit: cover;
-  border: 1px solid #eee;
-  border-radius: 4px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
 }
 .amz-bundle-plus {
-  font-size: 20px;
-  color: #767676;
+  font-size: 22px;
+  color: var(--muted);
 }
 .amz-bundle-calc {
   margin-left: 20px;
 }
 .amz-bundle-total {
   font-size: 16px;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
+  color: var(--ink-soft);
 }
 .amz-bundle-total b {
-  color: #b12704;
-  font-size: 18px;
+  color: var(--ink);
+  font-size: 20px;
 }
 
 /* =========================================================
    REVIEWS & RATINGS SECTION
    ========================================================= */
 .amz-reviews-section {
-  border-top: 1px solid var(--amz-border);
-  padding-top: 32px;
-  margin-top: 32px;
+  border-top: 1px solid var(--line);
+  padding-top: 36px;
+  margin-top: 36px;
   display: grid;
   grid-template-columns: 320px 1fr;
-  gap: 40px;
+  gap: 44px;
 }
 .amz-review-bars {
   display: grid;
@@ -1334,51 +1526,51 @@ input, select, textarea {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 12px;
+  font-size: 12.5px;
 }
 .amz-review-bar-track {
   flex: 1;
-  height: 18px;
-  background: #f0f2f2;
+  height: 16px;
+  background: #f0ede5;
   border-radius: 3px;
   overflow: hidden;
 }
 .amz-review-bar-fill {
   height: 100%;
-  background: #ffa41c;
+  background: var(--terracotta);
   border-radius: 3px;
 }
 
 .amz-review-card {
-  padding-bottom: 18px;
-  margin-bottom: 18px;
-  border-bottom: 1px solid #eee;
+  padding-bottom: 20px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--line);
 }
 .amz-review-author {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 6px;
+  gap: 10px;
+  margin-bottom: 8px;
 }
 .amz-review-avatar {
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
-  background: #e7e7e7;
+  background: #e6e2d8;
   display: grid;
   place-items: center;
   font-size: 12px;
   font-weight: 700;
-  color: #555;
+  color: var(--ink);
 }
 .amz-verified-tag {
-  color: #c45500;
+  color: var(--moss);
   font-weight: 700;
   font-size: 11px;
 }
 
 /* =========================================================
-   AMAZON MULTI-VENDOR CART DRAWER & CHECKOUT
+   MULTI-VENDOR CART DRAWER & CHECKOUT
    ========================================================= */
 .amz-cart-drawer {
   position: fixed;
@@ -1387,123 +1579,124 @@ input, select, textarea {
   bottom: 0;
   width: min(100%, 540px);
   background: #ffffff;
-  box-shadow: -4px 0 25px rgba(0,0,0,0.25);
+  box-shadow: -6px 0 30px rgba(36, 43, 35, 0.2);
   z-index: 500;
   display: flex;
   flex-direction: column;
 }
 .amz-cart-header {
-  background: var(--amz-nav-dark);
+  background: var(--moss-dark);
   color: #ffffff;
-  padding: 16px 20px;
+  padding: 18px 22px;
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 .amz-cart-header h2 {
-  font-size: 18px;
-  font-weight: 700;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 20px;
+  font-weight: 600;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 .amz-cart-body {
   flex: 1;
   overflow-y: auto;
-  padding: 18px 20px;
+  padding: 20px 22px;
 }
 
 /* Free Delivery Meter */
 .amz-free-delivery-meter {
-  background: #f0fdf4;
-  border: 1px solid #bbf7d0;
+  background: var(--moss-tint);
+  border: 1px solid #c9d8c6;
   border-radius: 6px;
-  padding: 10px 14px;
-  font-size: 12px;
-  color: #166534;
-  margin-bottom: 16px;
+  padding: 12px 16px;
+  font-size: 12.5px;
+  color: var(--moss-hover);
+  margin-bottom: 18px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
 /* Multi-Vendor Cart Package */
 .amz-cart-vendor-box {
-  border: 1px solid var(--amz-border);
-  border-radius: 6px;
-  margin-bottom: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  margin-bottom: 18px;
   overflow: hidden;
 }
 .amz-cart-vendor-head {
-  background: #f8f9fa;
-  padding: 8px 14px;
-  font-size: 12px;
+  background: #f8f6f0;
+  padding: 10px 16px;
+  font-size: 12.5px;
   font-weight: 600;
-  color: #0f1111;
-  border-bottom: 1px solid var(--amz-border);
+  color: var(--ink);
+  border-bottom: 1px solid var(--line);
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 .amz-cart-vendor-head span {
-  color: #007600;
-  font-weight: 500;
+  color: var(--moss);
+  font-weight: 600;
 }
 .amz-cart-item-row {
   display: grid;
-  grid-template-columns: 70px 1fr auto;
-  gap: 12px;
-  padding: 12px 14px;
-  border-bottom: 1px solid #f0f0f0;
+  grid-template-columns: 72px 1fr auto;
+  gap: 14px;
+  padding: 14px 16px;
+  border-bottom: 1px solid #f2eee5;
   align-items: center;
 }
 .amz-cart-item-row:last-child {
   border-bottom: none;
 }
 .amz-cart-item-row img {
-  width: 70px;
-  height: 70px;
+  width: 72px;
+  height: 72px;
   object-fit: cover;
-  border-radius: 4px;
-  border: 1px solid #eee;
+  border-radius: 6px;
+  border: 1px solid var(--line);
 }
 .amz-cart-item-title {
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 600;
-  color: #0f1111;
-  line-height: 1.3;
+  color: var(--ink);
+  line-height: 1.35;
 }
 .amz-cart-item-price {
-  font-size: 15px;
+  font-size: 15.5px;
   font-weight: 700;
-  color: #0f1111;
+  color: var(--ink);
 }
 .amz-cart-qty-ctrl {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  border: 1px solid #d5d9d9;
+  gap: 8px;
+  border: 1px solid var(--line-strong);
   border-radius: 4px;
-  background: #f0f2f2;
-  padding: 2px 6px;
+  background: #f5f3ec;
+  padding: 3px 8px;
   margin-top: 6px;
 }
 
 /* Available Coupons Box */
 .amz-coupons-box {
-  background: #fffbf0;
-  border: 1px dashed #f0c14b;
+  background: var(--cream-tint);
+  border: 1px dashed var(--line-strong);
   border-radius: 6px;
-  padding: 12px;
-  margin-bottom: 18px;
+  padding: 14px;
+  margin-bottom: 20px;
 }
 .amz-coupon-pill {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 6px 10px;
+  padding: 7px 12px;
   background: #ffffff;
-  border: 1px solid #e2d2a4;
+  border: 1px solid var(--line);
   border-radius: 4px;
   margin-top: 6px;
   font-size: 12px;
@@ -1511,24 +1704,26 @@ input, select, textarea {
 
 /* Cart Footer Checkout Bar */
 .amz-cart-footer {
-  border-top: 1px solid var(--amz-border);
-  padding: 16px 20px;
-  background: #f8f9fa;
+  border-top: 1px solid var(--line);
+  padding: 18px 22px;
+  background: #fbfaf6;
 }
 .amz-cart-summary-line {
   display: flex;
   justify-content: space-between;
   font-size: 13px;
-  margin-bottom: 4px;
+  margin-bottom: 5px;
+  color: var(--ink-soft);
 }
 .amz-cart-total-line {
   display: flex;
   justify-content: space-between;
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 700;
-  margin: 10px 0 14px;
-  padding-top: 8px;
-  border-top: 1px solid #ddd;
+  margin: 12px 0 16px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  color: var(--ink);
 }
 
 /* =========================================================
@@ -1537,7 +1732,7 @@ input, select, textarea {
 .amz-modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.65);
+  background: rgba(22, 32, 23, 0.65);
   display: grid;
   place-items: center;
   z-index: 600;
@@ -1549,36 +1744,37 @@ input, select, textarea {
   background: #ffffff;
   border-radius: 8px;
   overflow: hidden;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+  box-shadow: 0 12px 40px rgba(36, 43, 35, 0.25);
+  border: 1px solid var(--line);
 }
 .amz-checkout-steps-bar {
   display: flex;
-  background: #f7f7f7;
-  border-bottom: 1px solid var(--amz-border);
+  background: #f7f5ed;
+  border-bottom: 1px solid var(--line);
 }
 .amz-checkout-step-tab {
   flex: 1;
-  padding: 12px 16px;
+  padding: 14px 16px;
   text-align: center;
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: 600;
-  color: #767676;
+  color: var(--muted);
   border-bottom: 3px solid transparent;
 }
 .amz-checkout-step-tab.active {
-  color: #0f1111;
-  border-bottom-color: #ff9900;
+  color: var(--ink);
+  border-bottom-color: var(--terracotta);
   background: #ffffff;
 }
 
 /* =========================================================
-   ORDERS TRACKER
+   ORDERS TRACKER (4-Stage Flow)
    ========================================================= */
 .amz-order-tracker-bar {
   display: flex;
   justify-content: space-between;
   position: relative;
-  margin: 20px 0 10px;
+  margin: 24px 0 12px;
 }
 .amz-tracker-line {
   position: absolute;
@@ -1586,12 +1782,12 @@ input, select, textarea {
   left: 5%;
   right: 5%;
   height: 4px;
-  background: #e5e7eb;
+  background: #e5e3d8;
   z-index: 1;
 }
 .amz-tracker-fill {
   height: 100%;
-  background: var(--amz-green);
+  background: var(--moss);
   transition: width 0.4s ease;
 }
 .amz-tracker-node {
@@ -1605,8 +1801,8 @@ input, select, textarea {
   height: 28px;
   border-radius: 50%;
   background: #ffffff;
-  border: 2px solid #d1d5db;
-  color: #9ca3af;
+  border: 2px solid #ccc7ba;
+  color: #8c887b;
   display: grid;
   place-items: center;
   margin: 0 auto 6px;
@@ -1614,8 +1810,8 @@ input, select, textarea {
   font-weight: 700;
 }
 .amz-tracker-circle.done {
-  background: var(--amz-green);
-  border-color: var(--amz-green);
+  background: var(--moss);
+  border-color: var(--moss);
   color: #ffffff;
 }
 
@@ -1634,7 +1830,7 @@ input, select, textarea {
     grid-template-columns: 1fr;
   }
   .amz-sidebar {
-    display: none; /* Can be toggled with filter button */
+    display: none;
   }
   .amz-quad-container {
     grid-template-columns: repeat(2, 1fr);
@@ -1645,7 +1841,7 @@ input, select, textarea {
   .amz-header-top {
     height: auto;
     flex-wrap: wrap;
-    padding: 8px 12px;
+    padding: 10px 14px;
   }
   .amz-search-form {
     order: 3;
@@ -1664,7 +1860,7 @@ input, select, textarea {
   }
   .amz-product-grid {
     grid-template-columns: 1fr 1fr;
-    gap: 10px;
+    gap: 12px;
   }
   .amz-quad-container {
     grid-template-columns: 1fr;
@@ -1678,49 +1874,76 @@ input, select, textarea {
   }
 }
 
-/* Compatibility & Form Modals */
+/* =========================================================
+   SHARED UTILITIES & COMPONENT MODALS
+   ========================================================= */
 .primary-button {
-  border: 1px solid var(--amz-yellow-border);
-  background: var(--amz-yellow);
-  color: #0f1111;
+  border: 1px solid var(--moss-border);
+  background: var(--moss);
+  color: #ffffff;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 8px 18px;
+  padding: 10px 20px;
   font-size: 13px;
   font-weight: 600;
-  border-radius: 4px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-  transition: background 0.15s;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(69, 93, 70, 0.2);
+  transition: all 0.15s ease;
+  text-decoration: none !important;
 }
 .primary-button:hover {
-  background: var(--amz-yellow-hover);
+  background: var(--moss-hover);
+  color: #ffffff;
 }
 .primary-button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+.secondary-button {
+  border: 1px solid var(--terracotta-border);
+  background: var(--terracotta);
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 20px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(170, 119, 94, 0.25);
+  transition: all 0.15s ease;
+  text-decoration: none !important;
+}
+.secondary-button:hover {
+  background: var(--terracotta-hover);
+  color: #ffffff;
+}
+
 .eyebrow {
   display: flex;
   align-items: center;
   gap: 6px;
-  color: #565959;
+  color: var(--muted);
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.08em;
   margin-bottom: 6px;
 }
 .eyebrow-line {
-  width: 16px;
+  width: 18px;
   height: 2px;
-  background: #ff9900;
+  background: var(--terracotta);
 }
+
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(22, 32, 23, 0.65);
   display: grid;
   place-items: center;
   z-index: 500;
@@ -1729,11 +1952,11 @@ input, select, textarea {
 .auth-modal {
   width: min(100%, 420px);
   background: #ffffff;
-  padding: 30px;
+  padding: 32px;
   border-radius: 8px;
   position: relative;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
-  border: 1px solid #d5d9d9;
+  box-shadow: 0 12px 40px rgba(36, 43, 35, 0.25);
+  border: 1px solid var(--line);
 }
 .modal-close {
   position: absolute;
@@ -1741,76 +1964,84 @@ input, select, textarea {
   top: 14px;
   background: none;
   border: 0;
-  padding: 4px;
+  padding: 5px;
   cursor: pointer;
+  color: var(--muted);
+}
+.modal-close:hover {
+  color: var(--ink);
 }
 .auth-modal h2 {
-  font-size: 24px;
-  font-weight: 700;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 26px;
+  font-weight: 600;
   margin-bottom: 6px;
-  color: #0f1111;
+  color: var(--ink);
 }
 .auth-modal > p {
   font-size: 13px;
-  color: #565959;
-  line-height: 1.4;
+  color: var(--muted);
+  line-height: 1.5;
 }
 .auth-modal form {
   display: grid;
-  gap: 14px;
-  margin-top: 18px;
+  gap: 15px;
+  margin-top: 20px;
 }
 .auth-modal label {
   display: grid;
-  gap: 4px;
-  font-size: 12px;
-  font-weight: 700;
-  color: #0f1111;
+  gap: 5px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink);
 }
 .auth-modal input {
-  border: 1px solid #888c8c;
+  border: 1px solid var(--line-strong);
   background: #ffffff;
-  padding: 8px 10px;
+  padding: 9px 12px;
   font-size: 13px;
   border-radius: 4px;
-  outline-color: #ff9900;
+  outline-color: var(--moss);
 }
 .auth-submit {
   width: 100%;
-  margin-top: 6px;
+  margin-top: 8px;
 }
 .auth-switch {
   text-align: center;
-  margin-top: 16px;
-  font-size: 12px;
-  color: #565959;
+  margin-top: 18px;
+  font-size: 12.5px;
+  color: var(--muted);
 }
 .auth-switch button {
-  color: #007185;
+  color: var(--moss);
   font-weight: 700;
   margin-left: 4px;
 }
 .form-error {
-  color: #b12704;
+  color: var(--red-urgency);
   font-size: 12px;
   margin: 0;
 }
+
 .toast {
   position: fixed;
   bottom: 24px;
   right: 24px;
-  background: #131921;
+  background: var(--moss-dark);
   color: #ffffff;
-  padding: 12px 18px;
+  padding: 14px 20px;
   display: flex;
   gap: 12px;
   align-items: center;
   font-size: 13px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 8px 24px rgba(36, 43, 35, 0.25);
   border-radius: 6px;
+  border-left: 4px solid var(--terracotta);
   z-index: 700;
 }
 .toast button {
   color: #ffffff;
   margin-left: 8px;
+  cursor: pointer;
 }

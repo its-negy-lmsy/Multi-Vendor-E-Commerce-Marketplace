@@ -8,7 +8,7 @@ import {
   MapPin,
   RotateCcw,
   ShieldCheck,
-  ShoppingCart,
+  ShoppingBag,
   Star,
   ThumbsUp,
   Truck,
@@ -78,7 +78,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   if (isLoading) {
     return (
       <div style={{ maxWidth: 1200, margin: '80px auto', textAlign: 'center', padding: 20 }}>
-        <h2>Loading Amazon Artisan Product Details…</h2>
+        <h2>Loading Artisan Product Details…</h2>
       </div>
     );
   }
@@ -286,21 +286,21 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                 ))}
               </div>
             </div>
-            <a href="#reviews" style={{ fontSize: 13, color: '#007185' }}>
+            <a href="#reviews" style={{ fontSize: 13, color: '#455d46' }}>
               {product.ratingCount} ratings
             </a>
             <span style={{ color: '#ccc' }}>|</span>
-            <a href="#qa" style={{ fontSize: 13, color: '#007185' }}>
+            <a href="#qa" style={{ fontSize: 13, color: '#455d46' }}>
               14 answered questions
             </a>
           </div>
 
-          {/* Amazon's Choice Tag */}
+          {/* Artisan Pick Tag */}
           <div style={{ marginBottom: 14 }}>
             <span className="amz-badge-choice" style={{ position: 'static', display: 'inline-block' }}>
-              Amazon's <span style={{ color: '#ff9900' }}>Choice</span>
+              Artisan <span style={{ color: '#febd69' }}>Pick</span>
             </span>
-            <span style={{ fontSize: 12, color: '#565959', marginLeft: 8 }}>
+            <span style={{ fontSize: 12, color: '#72766d', marginLeft: 8 }}>
               for "{product.category}"
             </span>
           </div>
@@ -315,7 +315,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
               </div>
             </div>
 
-            <div style={{ fontSize: 13, color: '#565959' }}>
+            <div style={{ fontSize: 13, color: '#72766d' }}>
               Typical M.R.P.: <s style={{ textDecoration: 'line-through' }}>{formatPrice(mrp)}</s>
             </div>
             <div className="amz-pdp-taxes">Inclusive of all taxes</div>
@@ -336,7 +336,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                 }}
                 style={{ width: 16, height: 16, cursor: 'pointer' }}
               />
-              <label htmlFor="clip-coupon" style={{ cursor: 'pointer', fontSize: 13, color: '#0f1111' }}>
+              <label htmlFor="clip-coupon" style={{ cursor: 'pointer', fontSize: 13, color: '#242b23' }}>
                 <span className="amz-coupon-badge">Coupon</span> Save an extra <b>10%</b> with coupon code <b>WELCOME10</b> at checkout.
               </label>
             </div>
@@ -346,7 +346,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
           <div className="amz-pdp-trust-matrix">
             <div className="amz-pdp-trust-col">
               <Truck size={24} />
-              <span>Free Prime Delivery</span>
+              <span>Complimentary Express Delivery</span>
             </div>
             <div className="amz-pdp-trust-col">
               <RotateCcw size={24} />
@@ -423,7 +423,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
           </div>
 
           <div className="amz-buybox-delivery">
-            <span className="amz-prime-logo">prime</span>
+            <span className="amz-prime-logo">✦ Express</span>
             FREE delivery <b>Tomorrow by 2 PM</b>. Order within <b>4 hrs 18 mins</b>.
           </div>
 
@@ -454,17 +454,17 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
             </select>
           </div>
 
-          {/* Yellow Add to Cart */}
+          {/* Add to Bag (Moss) */}
           <button
             className="amz-btn-cart"
             onClick={handleAddToCart}
             disabled={product.stock <= 0}
             style={{ marginBottom: 8 }}
           >
-            <ShoppingCart size={16} /> Add to Cart
+            <ShoppingBag size={16} /> Add to Bag
           </button>
 
-          {/* Orange Buy Now */}
+          {/* Buy Now (Terracotta) */}
           <button
             className="amz-btn-buy"
             onClick={handleBuyNow}
@@ -476,7 +476,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
           {/* Buy Box Seller & Dispatch Metadata */}
           <div className="amz-buybox-meta">
             <span>Ships from</span>
-            <b>Marketplace Express</b>
+            <b>Artisan Express</b>
             <span>Sold by</span>
             <b>Artisan Partner Studio</b>
             <span>Payment</span>
@@ -548,14 +548,14 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                 style={{ width: 'auto', padding: '8px 20px' }}
                 onClick={handleAddBundleToCart}
               >
-                Add all three to Cart
+                Add all three to Bag
               </button>
             </div>
           </div>
-          <div style={{ marginTop: 12, fontSize: 12, color: '#565959', display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <div style={{ marginTop: 12, fontSize: 12, color: '#72766d', display: 'flex', flexDirection: 'column', gap: 4 }}>
             <div>• <b>This item:</b> {product.name} ({formatPrice(product.pricePaise)})</div>
-            <div>• <Link to={`/product/${bundleItem1._id}`} style={{ color: '#007185' }}>{bundleItem1.name}</Link> ({formatPrice(bundleItem1.pricePaise)})</div>
-            <div>• <Link to={`/product/${bundleItem2._id}`} style={{ color: '#007185' }}>{bundleItem2.name}</Link> ({formatPrice(bundleItem2.pricePaise)})</div>
+            <div>• <Link to={`/product/${bundleItem1._id}`} style={{ color: '#455d46' }}>{bundleItem1.name}</Link> ({formatPrice(bundleItem1.pricePaise)})</div>
+            <div>• <Link to={`/product/${bundleItem2._id}`} style={{ color: '#455d46' }}>{bundleItem2.name}</Link> ({formatPrice(bundleItem2.pricePaise)})</div>
           </div>
         </section>
       )}
@@ -591,7 +591,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
               }}
             >
               <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-                <span style={{ fontWeight: 800, color: '#007185', fontSize: 13 }}>Q:</span>
+                <span style={{ fontWeight: 800, color: '#455d46', fontSize: 13 }}>Q:</span>
                 <span style={{ fontWeight: 700, color: '#0f1111', fontSize: 14 }}>{faq.q}</span>
               </div>
               <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginTop: 8 }}>
@@ -637,7 +637,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
               { star: 1, pct: 2 },
             ].map(r => (
               <div className="amz-review-bar-row" key={r.star}>
-                <span style={{ width: 44, color: '#007185' }}>{r.star} star</span>
+                <span style={{ width: 44, color: '#455d46', fontWeight: 600 }}>{r.star} star</span>
                 <div className="amz-review-bar-track">
                   <div className="amz-review-bar-fill" style={{ width: `${r.pct}%` }} />
                 </div>
